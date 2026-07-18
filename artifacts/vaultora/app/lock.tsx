@@ -1,7 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import {
-  Animated, Platform, Pressable, StyleSheet, Text, View,
-} from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,10 +11,20 @@ import PinPad from '@/components/PinPad';
 export default function LockScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { verifyPin, authenticateWithFaceId, unlock, settings, isFaceIdAvailable } = useVault();
+  const {
+    verifyPin, authenticateWithFaceId, unlock,
+    settings, isFaceIdAvailable,
+    failedAttempts, lockUntil,
+    recordFailedAttempt, resetFailedAttempts,
+  } = useVault();
+
   const [error, setError] = useState(false);
-  const [attempts, setAttempts] = useState(0);
+  const [countdown, setCountdown] = useState(0);
   const logoAnim = useRef(new Animated.Value(0)).current;
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Check if currently locked out
+  const isLockedOut = lockUntil > Date.now();
 
   useEffect(() => {
     Animated.spring(logoAnim, {
@@ -26,30 +34,59 @@ export default function LockScreen() {
       useNativeDriver: true,
     }).start();
 
-    // Auto-trigger Face ID if enabled
-    if (settings.faceIdEnabled && isFaceIdAvailable) {
-      setTimeout(() => handleFaceId(), 600);
+    if (settings.faceIdEnabled && isFaceIdAvailable && !isLockedOut) {
+      setTimeout(() => handleFaceId(), 700);
     }
   }, []);
 
-  const handlePinComplete = async (pin: string) => {
+  // Countdown timer when locked out
+  useEffect(() => {
+    if (lockUntil <= Date.now()) {
+      setCountdown(0);
+      return;
+    }
+    const update = () => {
+      const remaining = Math.ceil((lockUntil - Date.now()) / 1000);
+      if (remaining <= 0) {
+        setCountdown(0);
+        if (countdownRef.current) clearInterval(countdownRef.current);
+      } else {
+        setCountdown(remaining);
+      }
+    };
+    update();
+    countdownRef.current = setInterval(update, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [lockUntil]);
+
+  const handlePinComplete = useCallback(async (pin: string) => {
+    if (isLockedOut || countdown > 0) return;
     const valid = await verifyPin(pin);
     if (valid) {
+      await resetFailedAttempts();
       unlock();
       router.replace('/');
     } else {
+      const result = await recordFailedAttempt();
       setError(true);
-      setAttempts(a => a + 1);
     }
-  };
+  }, [isLockedOut, countdown]);
 
-  const handleFaceId = async () => {
+  const handleFaceId = useCallback(async () => {
+    if (isLockedOut) return;
     const success = await authenticateWithFaceId();
     if (success) {
+      await resetFailedAttempts();
       unlock();
       router.replace('/');
     }
-  };
+  }, [isLockedOut]);
+
+  const attemptsWarning = failedAttempts >= 3
+    ? failedAttempts >= 5
+      ? `${failedAttempts} failed attempts`
+      : `${failedAttempts} incorrect attempts`
+    : undefined;
 
   return (
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
@@ -58,14 +95,13 @@ export default function LockScreen() {
         style={styles.gradient}
       />
 
-      {/* Logo area */}
       <Animated.View
         style={[
           styles.logoSection,
           { paddingTop: insets.top + 60 },
           {
             opacity: logoAnim,
-            transform: [{ scale: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0.8, 1] }) }],
+            transform: [{ scale: logoAnim.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }],
           },
         ]}
       >
@@ -76,19 +112,33 @@ export default function LockScreen() {
         <Text style={[styles.tagline, { color: colors.mutedForeground }]}>Your private vault</Text>
       </Animated.View>
 
-      {/* Pin Pad */}
-      <View style={styles.padSection}>
-        <PinPad
-          onComplete={handlePinComplete}
-          error={error}
-          onErrorReset={() => setError(false)}
-          onBiometric={handleFaceId}
-          showBiometric={settings.faceIdEnabled && isFaceIdAvailable}
-          subtitle={attempts >= 3 ? `${attempts} failed attempts` : undefined}
-        />
-      </View>
+      {/* Locked-out state */}
+      {countdown > 0 ? (
+        <View style={styles.lockedOutSection}>
+          <View style={[styles.lockedOutBox, { backgroundColor: colors.card, borderColor: 'rgba(224,85,85,0.3)' }]}>
+            <Ionicons name="time-outline" size={28} color={colors.destructive} />
+            <Text style={[styles.lockedOutTitle, { color: colors.destructive }]}>Too many attempts</Text>
+            <Text style={[styles.lockedOutTimer, { color: colors.foreground }]}>
+              Try again in {countdown}s
+            </Text>
+            <Text style={[styles.lockedOutHint, { color: colors.mutedForeground }]}>
+              Or use Face ID / Recovery Key
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.padSection}>
+          <PinPad
+            onComplete={handlePinComplete}
+            error={error}
+            onErrorReset={() => setError(false)}
+            onBiometric={handleFaceId}
+            showBiometric={settings.faceIdEnabled && isFaceIdAvailable}
+            subtitle={attemptsWarning}
+          />
+        </View>
+      )}
 
-      {/* Footer */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable onPress={() => router.push('/forgot-pin')}>
           <Text style={[styles.forgotText, { color: colors.mutedForeground }]}>Forgot PIN?</Text>
@@ -100,44 +150,17 @@ export default function LockScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-    bottom: '60%',
-  },
-  logoSection: {
-    alignItems: 'center',
-    gap: 12,
-    paddingBottom: 40,
-  },
-  shieldContainer: {
-    width: 88,
-    height: 88,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  appName: {
-    fontSize: 32,
-    fontFamily: 'Inter_700Bold',
-    color: '#EDE8DF',
-    letterSpacing: -0.5,
-  },
-  tagline: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-  },
-  padSection: {
-    flex: 1,
-    paddingHorizontal: 32,
-    justifyContent: 'center',
-  },
-  footer: {
-    alignItems: 'center',
-    paddingTop: 16,
-  },
-  forgotText: {
-    fontSize: 14,
-    fontFamily: 'Inter_400Regular',
-  },
+  gradient: { ...StyleSheet.absoluteFillObject, bottom: '60%' },
+  logoSection: { alignItems: 'center', gap: 12, paddingBottom: 24 },
+  shieldContainer: { width: 88, height: 88, borderRadius: 28, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  appName: { fontSize: 32, fontFamily: 'Inter_700Bold', color: '#EDE8DF', letterSpacing: -0.5 },
+  tagline: { fontSize: 14, fontFamily: 'Inter_400Regular' },
+  padSection: { flex: 1, paddingHorizontal: 32, justifyContent: 'center' },
+  lockedOutSection: { flex: 1, paddingHorizontal: 32, alignItems: 'center', justifyContent: 'center' },
+  lockedOutBox: { borderRadius: 20, padding: 28, alignItems: 'center', gap: 10, borderWidth: 1, width: '100%' },
+  lockedOutTitle: { fontSize: 17, fontFamily: 'Inter_600SemiBold' },
+  lockedOutTimer: { fontSize: 40, fontFamily: 'Inter_700Bold', letterSpacing: -1 },
+  lockedOutHint: { fontSize: 13, fontFamily: 'Inter_400Regular' },
+  footer: { alignItems: 'center', paddingTop: 16 },
+  forgotText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
 });

@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
-import { ActivityIndicator, Platform, StyleSheet, useColorScheme, View } from 'react-native';
-import { useColors } from '@/hooks/useColors';
+import React from 'react';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { Redirect, Tabs } from 'expo-router';
 import { useVault } from '@/contexts/VaultContext';
+import { useColors } from '@/hooks/useColors';
 
 function LoadingScreen() {
   return (
@@ -15,15 +15,17 @@ function LoadingScreen() {
 }
 
 export default function VaultTabLayout() {
-  const { isLoading, isSetupComplete, isUnlocked } = useVault();
+  const { isLoading, isSetupComplete, isUnlocked, settings } = useVault();
   const colors = useColors();
-  const colorScheme = useColorScheme();
   const isIOS = Platform.OS === 'ios';
   const isWeb = Platform.OS === 'web';
 
   if (isLoading) return <LoadingScreen />;
   if (!isSetupComplete) return <Redirect href="/onboarding" />;
-  if (!isUnlocked) return <Redirect href="/lock" />;
+  if (!isUnlocked) {
+    if (settings.privacyCoverEnabled) return <Redirect href="/privacy-cover/calculator" />;
+    return <Redirect href="/lock" />;
+  }
 
   return (
     <Tabs
@@ -35,7 +37,6 @@ export default function VaultTabLayout() {
           position: 'absolute',
           backgroundColor: isIOS ? 'transparent' : '#0D0D1A',
           borderTopWidth: 0,
-          borderTopColor: 'transparent',
           elevation: 0,
           height: isWeb ? 84 : 80,
         },

@@ -10,9 +10,16 @@ import {
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { VaultProvider } from '@/contexts/VaultContext';
+import AppLockOverlay from '@/components/AppLockOverlay';
+import { useAutoLock } from '@/hooks/useAutoLock';
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
+
+function AutoLockMount() {
+  useAutoLock();
+  return null;
+}
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
@@ -32,12 +39,24 @@ export default function RootLayout() {
           <QueryClientProvider client={queryClient}>
             <GestureHandlerRootView style={{ flex: 1 }}>
               <KeyboardProvider>
-                <Stack screenOptions={{ headerShown: false, animation: 'fade', contentStyle: { backgroundColor: '#0A0A12' } }}>
+                <AutoLockMount />
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    animation: 'fade',
+                    contentStyle: { backgroundColor: '#0A0A12' },
+                  }}
+                >
                   <Stack.Screen name="(tabs)" />
                   <Stack.Screen name="lock" options={{ animation: 'none', gestureEnabled: false }} />
                   <Stack.Screen name="forgot-pin" options={{ animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="onboarding" options={{ animation: 'none', gestureEnabled: false }} />
+                  <Stack.Screen name="viewer" options={{ animation: 'fade', presentation: 'fullScreenModal' }} />
+                  <Stack.Screen name="trash" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="subscription" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
+                  <Stack.Screen name="privacy-cover" options={{ animation: 'none', gestureEnabled: false }} />
                 </Stack>
+                <AppLockOverlay />
               </KeyboardProvider>
             </GestureHandlerRootView>
           </QueryClientProvider>

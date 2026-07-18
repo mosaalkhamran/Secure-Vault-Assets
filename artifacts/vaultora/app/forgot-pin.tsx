@@ -92,7 +92,7 @@ export default function ForgotPinScreen() {
                 icon="key-outline"
                 iconColor="#F5A623"
                 title="Recovery Key"
-                description="Enter your 12-word recovery key"
+                description="Enter your 24-word recovery key"
                 onPress={() => setStep('recovery-key')}
                 colors={colors}
               />
@@ -121,7 +121,7 @@ export default function ForgotPinScreen() {
         {step === 'recovery-key' && (
           <View style={styles.recoverySection}>
             <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              Enter your 12-word recovery key, separated by spaces
+              Enter your 24-word recovery key, separated by spaces
             </Text>
             <TextInput
               value={recoveryInput}
