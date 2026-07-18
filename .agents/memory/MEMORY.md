@@ -1,0 +1,1 @@
+- [Expo SDK 54 package compatibility](expo-sdk54-package-compatibility.md) — expo-crypto crashes in Expo Go; use js-sha256 instead; always pin package versions to SDK 54 ranges

@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-// Uses the built-in Web Crypto API available in React Native (Hermes) — no native module required
+import { sha256 } from 'js-sha256';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as FileSystem from 'expo-file-system';
 import { Platform } from 'react-native';
@@ -107,11 +107,7 @@ export const generateRecoveryKey = (): string => {
 };
 
 const hashValue = async (value: string): Promise<string> => {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(`vaultora_secure_2024_${value}`);
-  const hashBuffer = await global.crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return sha256(`vaultora_secure_2024_${value}`);
 };
 
 interface VaultContextType {
