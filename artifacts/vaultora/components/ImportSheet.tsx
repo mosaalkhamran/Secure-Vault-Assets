@@ -5,11 +5,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColors } from '@/hooks/useColors';
 import { useVault, VAULT_DIR } from '@/contexts/VaultContext';
+import { ensureDirectory } from '@/utils/filesystem';
 
 interface ImportSheetProps {
   visible: boolean;
@@ -58,12 +59,15 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      mediaTypes: ['images', 'videos'] as any,
       allowsMultipleSelection: true,
       quality: 1,
       exif: false,
     });
-    if (result.canceled || !result.assets.length) return;
+    if (result.canceled || !result.assets.length) {
+      onClose();
+      return;
+    }
 
     const assets: SelectedAsset[] = result.assets.map(a => ({
       uri: a.uri,
@@ -90,10 +94,10 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
         const fileName = `${Date.now()}${Math.random().toString(36).substr(2, 6)}.${ext}`;
         const destUri = `${VAULT_DIR}${fileName}`;
 
-        await FileSystem.makeDirectoryAsync(VAULT_DIR, { intermediates: true }).catch(() => {});
+        await ensureDirectory(VAULT_DIR);
         await FileSystem.copyAsync({ from: asset.uri, to: destUri });
 
-        const info = await FileSystem.getInfoAsync(destUri, { size: true });
+        const info = await FileSystem.getInfoAsync(destUri, { size: true } as any);
         const size = (info.exists && 'size' in info) ? (info.size ?? asset.size) : asset.size;
 
         itemsToAdd.push({

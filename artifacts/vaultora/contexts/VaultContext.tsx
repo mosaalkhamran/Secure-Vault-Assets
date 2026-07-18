@@ -2,11 +2,12 @@ import React, { createContext, useCallback, useContext, useEffect, useRef, useSt
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import * as LocalAuthentication from 'expo-local-authentication';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { Platform } from 'react-native';
 import { sha256 } from 'js-sha256';
 import { encryptFile, generateSalt, generateVaultKey } from '@/services/encryption';
+import { ensureDirectory } from '@/utils/filesystem';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -70,6 +71,7 @@ const STORAGE_KEYS = {
   SETUP_COMPLETE: 'vault_setup_complete',
   PIN_HASH: 'vault_pin_hash',
   RECOVERY_HASH: 'vault_recovery_hash',
+  DECOY_PIN_HASH: 'vault_decoy_pin_hash',
   ALL_ITEMS: 'vault_all_items',
   ALBUMS: 'vault_albums',
   SETTINGS: 'vault_settings',
@@ -143,6 +145,8 @@ interface VaultContextType {
   isLoading: boolean;
   isSetupComplete: boolean;
   isUnlocked: boolean;
+  isDecoyMode: boolean;
+  hasDecoyPin: boolean;
   vaultItems: VaultItem[];
   trashedItems: VaultItem[];
   albums: Album[];
@@ -161,6 +165,11 @@ interface VaultContextType {
   verifyRecoveryKey: (key: string) => Promise<boolean>;
   recordFailedAttempt: () => Promise<{ locked: boolean; lockSeconds: number }>;
   resetFailedAttempts: () => Promise<void>;
+  // Decoy vault
+  setupDecoyPin: (pin: string) => Promise<void>;
+  verifyDecoyPin: (pin: string) => Promise<boolean>;
+  removeDecoyPin: () => Promise<void>;
+  enterDecoyMode: () => void;
   // Vault ops
   unlock: () => void;
   lock: () => void;
@@ -191,6 +200,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const [isDecoyMode, setIsDecoyMode] = useState(false);
+  const [hasDecoyPin, setHasDecoyPin] = useState(false);
   const [allItems, setAllItems] = useState<VaultItem[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [settings, setSettings] = useState<VaultSettings>(DEFAULT_SETTINGS);
@@ -198,8 +209,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockUntil, setLockUntil] = useState(0);
 
-  const vaultItems = allItems.filter(i => !i.deletedAt);
-  const trashedItems = allItems.filter(i => !!i.deletedAt);
+  const vaultItems = isDecoyMode ? [] : allItems.filter(i => !i.deletedAt);
+  const trashedItems = isDecoyMode ? [] : allItems.filter(i => !!i.deletedAt);
 
   useEffect(() => {
     initVault();
@@ -220,16 +231,18 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
 
   const initVault = async () => {
     try {
-      const [setupVal, settingsJson, attemptsStr, lockUntilStr] = await Promise.all([
+      const [setupVal, settingsJson, attemptsStr, lockUntilStr, decoyHash] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.SETUP_COMPLETE),
         AsyncStorage.getItem(STORAGE_KEYS.SETTINGS),
         SecureStore.getItemAsync(STORAGE_KEYS.FAILED_ATTEMPTS).catch(() => null),
         SecureStore.getItemAsync(STORAGE_KEYS.LOCK_UNTIL).catch(() => null),
+        SecureStore.getItemAsync(STORAGE_KEYS.DECOY_PIN_HASH).catch(() => null),
       ]);
       setIsSetupComplete(setupVal === 'true');
       if (settingsJson) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(settingsJson) });
       setFailedAttempts(attemptsStr ? parseInt(attemptsStr, 10) : 0);
       setLockUntil(lockUntilStr ? parseInt(lockUntilStr, 10) : 0);
+      setHasDecoyPin(!!decoyHash);
 
       if (Platform.OS !== 'web') {
         const [hasHW, isEnrolled] = await Promise.all([
@@ -237,8 +250,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
           LocalAuthentication.isEnrolledAsync(),
         ]);
         setIsFaceIdAvailable(hasHW && isEnrolled);
-        await FileSystem.makeDirectoryAsync(VAULT_DIR, { intermediates: true }).catch(() => {});
-        await FileSystem.makeDirectoryAsync(TEMP_DIR, { intermediates: true }).catch(() => {});
+        await ensureDirectory(VAULT_DIR);
+        await ensureDirectory(TEMP_DIR);
       }
     } catch (e) {
       console.error('Vault init error:', e);
@@ -356,8 +369,35 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
 
   const lock = useCallback(() => {
     setIsUnlocked(false);
+    setIsDecoyMode(false);
     setAllItems([]);
     setAlbums([]);
+  }, []);
+
+  const setupDecoyPin = async (pin: string) => {
+    const hash = await hashValue(pin);
+    await SecureStore.setItemAsync(STORAGE_KEYS.DECOY_PIN_HASH, hash);
+    setHasDecoyPin(true);
+  };
+
+  const verifyDecoyPin = async (pin: string): Promise<boolean> => {
+    const stored = await SecureStore.getItemAsync(STORAGE_KEYS.DECOY_PIN_HASH).catch(() => null);
+    if (!stored) return false;
+    const hash = await hashValue(pin);
+    return stored === hash;
+  };
+
+  const removeDecoyPin = async () => {
+    await SecureStore.deleteItemAsync(STORAGE_KEYS.DECOY_PIN_HASH).catch(() => {});
+    setHasDecoyPin(false);
+  };
+
+  const enterDecoyMode = useCallback(() => {
+    setIsDecoyMode(true);
+    setIsUnlocked(true);
+    // Load real items into allItems so the store is consistent,
+    // but vaultItems returns [] when isDecoyMode is true
+    loadVaultData();
   }, []);
 
   const completeSetup = async () => {
@@ -368,7 +408,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const resetVault = async () => {
     if (Platform.OS !== 'web') {
       await FileSystem.deleteAsync(VAULT_DIR, { idempotent: true }).catch(() => {});
-      await FileSystem.makeDirectoryAsync(VAULT_DIR, { intermediates: true }).catch(() => {});
+      await ensureDirectory(VAULT_DIR);
     }
     await Promise.all([
       AsyncStorage.removeItem(STORAGE_KEYS.SETUP_COMPLETE),
@@ -377,11 +417,14 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.removeItem(STORAGE_KEYS.SETTINGS),
       SecureStore.deleteItemAsync(STORAGE_KEYS.PIN_HASH).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.RECOVERY_HASH).catch(() => {}),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.DECOY_PIN_HASH).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.FAILED_ATTEMPTS).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.LOCK_UNTIL).catch(() => {}),
     ]);
     setIsSetupComplete(false);
     setIsUnlocked(false);
+    setIsDecoyMode(false);
+    setHasDecoyPin(false);
     setAllItems([]);
     setAlbums([]);
     setSettings(DEFAULT_SETTINGS);
@@ -538,13 +581,14 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <VaultContext.Provider value={{
-      isLoading, isSetupComplete, isUnlocked,
+      isLoading, isSetupComplete, isUnlocked, isDecoyMode, hasDecoyPin,
       vaultItems, trashedItems, albums, settings,
       isFaceIdAvailable, failedAttempts, lockUntil,
       createPin, verifyPin, changePin,
       enableFaceId, disableFaceId, authenticateWithFaceId,
       storeRecoveryKey, verifyRecoveryKey,
       recordFailedAttempt, resetFailedAttempts,
+      setupDecoyPin, verifyDecoyPin, removeDecoyPin, enterDecoyMode,
       unlock, lock, completeSetup, resetVault,
       addItems, softDelete, restoreFromTrash, permanentDelete, emptyTrash,
       toggleFavorite, exportToPhotos,

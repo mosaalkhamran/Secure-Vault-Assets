@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View,
+  Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -16,7 +16,7 @@ export default function SettingsScreen() {
   const {
     settings, vaultItems, trashedItems, lock, resetVault,
     updateSettings, enableFaceId, disableFaceId, isFaceIdAvailable,
-    createPin,
+    createPin, hasDecoyPin, setupDecoyPin, removeDecoyPin,
   } = useVault();
 
   const [showChangePinModal, setShowChangePinModal] = useState(false);
@@ -44,8 +44,8 @@ export default function SettingsScreen() {
       'Lock vault after:',
       AUTO_LOCK_OPTIONS.map(o => ({
         text: o.label + (settings.autoLockSeconds === o.value ? ' ✓' : ''),
-        onPress: () => updateSettings({ autoLockSeconds: o.value }),
-      })).concat([{ text: 'Cancel', onPress: () => {} }])
+        onPress: async () => { await updateSettings({ autoLockSeconds: o.value }); },
+      })).concat([{ text: 'Cancel', onPress: async () => {} }])
     );
   };
 
@@ -175,11 +175,33 @@ export default function SettingsScreen() {
         <Section title="APP">
           <Row icon="apps-outline" iconColor="#5E9EFA" label="App Icon" description="Premium" value="Default" onPress={() => router.push('/subscription')} colors={colors} premium />
           <Divider colors={colors} />
-          <Row icon="document-text-outline" iconColor={colors.mutedForeground} label="Privacy Policy" colors={colors} chevron />
+          <Row icon="document-text-outline" iconColor={colors.mutedForeground} label="Privacy Policy" onPress={() => router.push('/legal/privacy-policy')} colors={colors} chevron />
           <Divider colors={colors} />
-          <Row icon="reader-outline" iconColor={colors.mutedForeground} label="Terms of Use" colors={colors} chevron />
+          <Row icon="reader-outline" iconColor={colors.mutedForeground} label="Terms of Use" onPress={() => router.push('/legal/terms')} colors={colors} chevron />
           <Divider colors={colors} />
-          <Row icon="information-circle-outline" iconColor={colors.mutedForeground} label="Version" value="1.0.0" colors={colors} />
+          <Row icon="information-circle-outline" iconColor={colors.mutedForeground} label="About & Support" onPress={() => router.push('/legal/about')} colors={colors} chevron />
+        </Section>
+
+        {/* Decoy Vault */}
+        <Section title="DECOY VAULT">
+          <Row
+            icon="glasses-outline" iconColor="#9B59B6"
+            label="Decoy Vault PIN"
+            description={hasDecoyPin ? 'A decoy PIN is set — entering it shows an empty vault' : 'Set a fake PIN that opens an empty vault'}
+            onPress={() => {
+              if (hasDecoyPin) {
+                Alert.alert('Decoy Vault', 'A decoy PIN is active.', [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Remove Decoy PIN', style: 'destructive', onPress: () => removeDecoyPin() },
+                ]);
+              } else {
+                router.push('/setup-decoy-pin');
+              }
+            }}
+            colors={colors}
+            premium={!settings.isPremium}
+            chevron={settings.isPremium || hasDecoyPin}
+          />
         </Section>
 
         {/* Danger */}
@@ -197,7 +219,7 @@ export default function SettingsScreen() {
       {/* Change PIN Modal */}
       <ChangePinModal
         visible={showChangePinModal}
-        onClose={() => { setShowChangePinModal(false); setChangePinStep('old'); setNewPinTemp(''); setPinError(false); }}
+        onClose={() => setShowChangePinModal(false)}
         colors={colors}
       />
     </View>

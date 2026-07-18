@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
-  Dimensions, FlatList, Platform, Pressable, StyleSheet, Text,
+  Alert, Dimensions, FlatList, Platform, Pressable, StyleSheet, Text,
   TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12,6 +12,7 @@ import { useColors } from '@/hooks/useColors';
 import { useVault, VaultItem, SortOption, FilterOption } from '@/contexts/VaultContext';
 import SortFilterSheet from '@/components/SortFilterSheet';
 import ImportSheet from '@/components/ImportSheet';
+import AlbumPickerSheet from '@/components/AlbumPickerSheet';
 
 const { width: SW } = Dimensions.get('window');
 const COLS = 3;
@@ -21,7 +22,7 @@ const ITEM_SIZE = (SW - GAP * (COLS - 1)) / COLS;
 export default function LibraryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { vaultItems, trashedItems, softDelete, toggleFavorite, lock } = useVault();
+  const { vaultItems, trashedItems, softDelete, toggleFavorite, lock, exportToPhotos, addItemsToAlbum } = useVault();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
@@ -30,6 +31,7 @@ export default function LibraryScreen() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showSortFilter, setShowSortFilter] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showAlbumPicker, setShowAlbumPicker] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const isSelecting = selectedIds.size > 0;
 
@@ -93,6 +95,22 @@ export default function LibraryScreen() {
     for (const id of selectedIds) await toggleFavorite(id);
     setSelectedIds(new Set());
   }, [selectedIds, toggleFavorite]);
+
+  const handleExportSelected = useCallback(async () => {
+    let count = 0;
+    for (const id of selectedIds) {
+      const ok = await exportToPhotos(id);
+      if (ok) count++;
+    }
+    setSelectedIds(new Set());
+    if (count > 0) Alert.alert('Exported', `${count} item${count !== 1 ? 's' : ''} saved to Photos.`);
+    else Alert.alert('Export Failed', 'Could not export. Grant Photos access in Settings.');
+  }, [selectedIds, exportToPhotos]);
+
+  const handleMoveToAlbum = useCallback(async (albumId: string) => {
+    await addItemsToAlbum(Array.from(selectedIds), albumId);
+    setSelectedIds(new Set());
+  }, [selectedIds, addItemsToAlbum]);
 
   const handleSelectAll = () => setSelectedIds(new Set(sorted.map(i => i.id)));
 
@@ -286,8 +304,8 @@ export default function LibraryScreen() {
       {isSelecting && (
         <View style={[styles.selToolbar, { backgroundColor: colors.card, paddingBottom: insets.bottom + 8 }]}>
           <ToolbarBtn icon="heart-outline" label="Favorite" onPress={handleFavoriteSelected} color={colors.primary} />
-          <ToolbarBtn icon="folder-open-outline" label="Album" onPress={() => {}} color={colors.foreground} />
-          <ToolbarBtn icon="share-outline" label="Export" onPress={() => {}} color={colors.foreground} />
+          <ToolbarBtn icon="folder-open-outline" label="Album" onPress={() => setShowAlbumPicker(true)} color={colors.foreground} />
+          <ToolbarBtn icon="share-outline" label="Export" onPress={handleExportSelected} color={colors.foreground} />
           <ToolbarBtn icon="trash-outline" label="Delete" onPress={handleDeleteSelected} color={colors.destructive} />
         </View>
       )}
@@ -304,6 +322,12 @@ export default function LibraryScreen() {
       />
 
       <ImportSheet visible={showImport} onClose={() => setShowImport(false)} />
+      <AlbumPickerSheet
+        visible={showAlbumPicker}
+        onClose={() => setShowAlbumPicker(false)}
+        onSelect={handleMoveToAlbum}
+        title={`Add ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''} to Album`}
+      />
     </View>
   );
 }

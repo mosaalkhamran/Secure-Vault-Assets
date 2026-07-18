@@ -146,7 +146,7 @@ export default function RecoveryKeyScreen() {
             {/* Verification step */}
             <View style={styles.titleSection}>
               <View style={[styles.iconBg, { backgroundColor: 'rgba(76,175,135,0.15)' }]}>
-                <Ionicons name="checkmark-shield-outline" size={32} color="#4CAF87" />
+                <Ionicons name="shield-checkmark-outline" size={32} color="#4CAF87" />
               </View>
               <Text style={[styles.title, { color: colors.foreground }]}>Verify Your Key</Text>
               <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>

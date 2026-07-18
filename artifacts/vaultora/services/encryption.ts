@@ -12,7 +12,8 @@
  * between environments.
  */
 
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { ensureDirectory } from '@/utils/filesystem';
 import { sha256 } from 'js-sha256';
 
 export interface EncryptedFileResult {
@@ -66,7 +67,7 @@ export function generateVaultKey(): VaultKey {
 export async function computeFileChecksum(fileUri: string): Promise<string> {
   try {
     // Read first 64KB + file info for a lightweight checksum
-    const info = await FileSystem.getInfoAsync(fileUri, { size: true });
+    const info = await FileSystem.getInfoAsync(fileUri, { size: true } as any);
     const sizeStr = (info.exists && 'size' in info) ? String(info.size) : '0';
     // For a real implementation, hash the entire file content
     // For now, combine URI + size as a fast integrity marker
@@ -92,13 +93,13 @@ export async function encryptFile(
   const destUri = `${destDir}${fileName}`;
 
   // Ensure directory exists
-  await FileSystem.makeDirectoryAsync(destDir, { intermediates: true }).catch(() => {});
+  await ensureDirectory(destDir);
 
   // In Expo Go: copy directly (no real encryption available without native module)
   // In Production/DevBuild: use react-native-quick-crypto AES-256-GCM here
   await FileSystem.copyAsync({ from: sourceUri, to: destUri });
 
-  const info = await FileSystem.getInfoAsync(destUri, { size: true });
+  const info = await FileSystem.getInfoAsync(destUri, { size: true } as any);
   const sizeBytes = (info.exists && 'size' in info && info.size) ? info.size : 0;
   const checksum = await computeFileChecksum(destUri);
   const nonce = generateSalt().substring(0, 24); // 96-bit nonce
@@ -115,7 +116,7 @@ export async function decryptFileToTemp(
 ): Promise<string> {
   const tempName = `tmp_${Date.now()}.dat`;
   const tempUri = `${tempDir}${tempName}`;
-  await FileSystem.makeDirectoryAsync(tempDir, { intermediates: true }).catch(() => {});
+  await ensureDirectory(tempDir);
   // In Expo Go: copy directly
   // In Production: decrypt AES-256-GCM here
   await FileSystem.copyAsync({ from: encryptedUri, to: tempUri });

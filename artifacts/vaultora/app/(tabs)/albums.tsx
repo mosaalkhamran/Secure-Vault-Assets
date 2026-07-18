@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 import { useColors } from '@/hooks/useColors';
 import { useVault, Album } from '@/contexts/VaultContext';
 
@@ -89,6 +90,7 @@ export default function AlbumsScreen() {
           const count = getItemCount(item);
           return (
             <Pressable
+              onPress={() => router.push({ pathname: '/album/[id]', params: { id: item.id } })}
               onLongPress={() => handleLongPress(item)}
               style={[styles.card, { backgroundColor: colors.card }]}
             >

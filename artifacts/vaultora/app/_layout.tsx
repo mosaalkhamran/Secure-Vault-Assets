@@ -55,6 +55,9 @@ export default function RootLayout() {
                   <Stack.Screen name="trash" options={{ animation: 'slide_from_right' }} />
                   <Stack.Screen name="subscription" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
                   <Stack.Screen name="privacy-cover" options={{ animation: 'none', gestureEnabled: false }} />
+                  <Stack.Screen name="album/[id]" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="legal" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen name="setup-decoy-pin" options={{ animation: 'slide_from_bottom', presentation: 'modal' }} />
                 </Stack>
                 <AppLockOverlay />
               </KeyboardProvider>

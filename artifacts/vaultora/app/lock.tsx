@@ -16,6 +16,7 @@ export default function LockScreen() {
     settings, isFaceIdAvailable,
     failedAttempts, lockUntil,
     recordFailedAttempt, resetFailedAttempts,
+    verifyDecoyPin, enterDecoyMode, hasDecoyPin,
   } = useVault();
 
   const [error, setError] = useState(false);
@@ -66,11 +67,21 @@ export default function LockScreen() {
       await resetFailedAttempts();
       unlock();
       router.replace('/');
-    } else {
-      const result = await recordFailedAttempt();
-      setError(true);
+      return;
     }
-  }, [isLockedOut, countdown]);
+    // Check decoy PIN (silent — no error shown, unlocks to empty vault)
+    if (hasDecoyPin) {
+      const isDecoy = await verifyDecoyPin(pin);
+      if (isDecoy) {
+        await resetFailedAttempts();
+        enterDecoyMode();
+        router.replace('/');
+        return;
+      }
+    }
+    await recordFailedAttempt();
+    setError(true);
+  }, [isLockedOut, countdown, hasDecoyPin]);
 
   const handleFaceId = useCallback(async () => {
     if (isLockedOut) return;

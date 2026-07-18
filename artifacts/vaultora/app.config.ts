@@ -37,6 +37,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       UIFileSharingEnabled: false,
       LSSupportsOpeningDocumentsInPlace: false,
     },
+    // @ts-ignore — alternateIcons is a valid Expo SDK field not yet typed
     alternateIcons: {
       calculator: {
         image: './assets/icons/calculator',
