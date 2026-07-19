@@ -1,6 +1,4 @@
-import { ExpoConfig, ConfigContext } from 'expo/config';
-
-export default ({ config }: ConfigContext): ExpoConfig => ({
+module.exports = ({ config }) => ({
   ...config,
   name: 'Vaultora',
   slug: 'vaultora',
@@ -37,20 +35,10 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       UIFileSharingEnabled: false,
       LSSupportsOpeningDocumentsInPlace: false,
     },
-    // @ts-ignore — alternateIcons is a valid Expo SDK field not yet typed
     alternateIcons: {
-      calculator: {
-        image: './assets/icons/calculator',
-        prerendered: true,
-      },
-      folder: {
-        image: './assets/icons/folder',
-        prerendered: true,
-      },
-      notebook: {
-        image: './assets/icons/notebook',
-        prerendered: true,
-      },
+      calculator: { image: './assets/icons/calculator', prerendered: true },
+      folder:     { image: './assets/icons/folder',     prerendered: true },
+      notebook:   { image: './assets/icons/notebook',   prerendered: true },
     },
   },
   android: {
@@ -65,12 +53,8 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     favicon: './assets/images/icon.png',
   },
   plugins: [
-    [
-      'expo-router',
-      {
-        origin: 'https://replit.com/',
-      },
-    ],
+    // expo-router بدون أي origin خارجي — التطبيق مستقل تماماً
+    'expo-router',
     'expo-font',
     'expo-web-browser',
     [
