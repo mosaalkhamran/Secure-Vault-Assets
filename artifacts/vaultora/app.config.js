@@ -96,5 +96,8 @@ module.exports = ({ config }) => ({
   extra: {
     cloudKitContainer: 'iCloud.com.vaultora.app',
     subscriptionProductId: 'com.vaultora.premium.monthly',
+    eas: {
+      projectId: '7dea57d8-5cb4-4a91-a6db-2e4c7fb1251c',
+    },
   },
 });
