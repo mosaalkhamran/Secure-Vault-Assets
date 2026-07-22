@@ -9,6 +9,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
+import QuestionPickerModal from '@/components/QuestionPickerModal';
 
 type Mode = 'choose' | 'phrase' | 'questions';
 type QStep = 'q1' | 'q2' | 'done';
@@ -33,8 +34,7 @@ export default function RecoverySetupScreen() {
   const [q2Idx, setQ2Idx] = useState(1);
   const [a1, setA1] = useState('');
   const [a2, setA2] = useState('');
-  const [showQ1Picker, setShowQ1Picker] = useState(false);
-  const [showQ2Picker, setShowQ2Picker] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<'q1' | 'q2' | null>(null);
 
   const finish = async () => {
     await completeSetup();
@@ -271,27 +271,14 @@ export default function RecoverySetupScreen() {
         <View style={styles.qaBlock}>
           <Text style={[styles.qaLabel, { color: colors.foreground }]}>{t('onboarding.recovery.questions.q1Label')}</Text>
           <Pressable
-            onPress={() => { setShowQ1Picker(!showQ1Picker); setShowQ2Picker(false); }}
-            style={[styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => setPickerTarget('q1')}
+            style={({ pressed }) => [styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
           >
-            <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={1}>
+            <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={2}>
               {QUESTIONS[q1Idx] ?? ''}
             </Text>
-            <Ionicons name={showQ1Picker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
+            <Ionicons name="chevron-down" size={16} color="#C4975A" />
           </Pressable>
-          {showQ1Picker && (
-            <View style={[styles.qDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {QUESTIONS.map((q, i) => (
-                <Pressable
-                  key={i}
-                  onPress={() => { setQ1Idx(i); setShowQ1Picker(false); setA1(''); }}
-                  style={[styles.qOption, i === q1Idx && { backgroundColor: 'rgba(196,151,90,0.12)' }]}
-                >
-                  <Text style={[styles.qOptionText, { color: i === q1Idx ? '#C4975A' : colors.foreground }]}>{q}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
           <TextInput
             value={a1}
             onChangeText={setA1}
@@ -307,27 +294,14 @@ export default function RecoverySetupScreen() {
         <View style={styles.qaBlock}>
           <Text style={[styles.qaLabel, { color: colors.foreground }]}>{t('onboarding.recovery.questions.q2Label')}</Text>
           <Pressable
-            onPress={() => { setShowQ2Picker(!showQ2Picker); setShowQ1Picker(false); }}
-            style={[styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border }]}
+            onPress={() => setPickerTarget('q2')}
+            style={({ pressed }) => [styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.75 : 1 }]}
           >
-            <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={1}>
+            <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={2}>
               {QUESTIONS[q2Idx] ?? ''}
             </Text>
-            <Ionicons name={showQ2Picker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
+            <Ionicons name="chevron-down" size={16} color="#C4975A" />
           </Pressable>
-          {showQ2Picker && (
-            <View style={[styles.qDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {QUESTIONS.map((q, i) => (
-                <Pressable
-                  key={i}
-                  onPress={() => { setQ2Idx(i); setShowQ2Picker(false); setA2(''); }}
-                  style={[styles.qOption, i === q2Idx && { backgroundColor: 'rgba(196,151,90,0.12)' }]}
-                >
-                  <Text style={[styles.qOptionText, { color: i === q2Idx ? '#C4975A' : colors.foreground }]}>{q}</Text>
-                </Pressable>
-              ))}
-            </View>
-          )}
           <TextInput
             value={a2}
             onChangeText={setA2}
@@ -338,6 +312,19 @@ export default function RecoverySetupScreen() {
             style={[styles.answerInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.input }]}
           />
         </View>
+
+        <QuestionPickerModal
+          visible={pickerTarget !== null}
+          title={pickerTarget === 'q1' ? t('onboarding.recovery.questions.q1Label') : t('onboarding.recovery.questions.q2Label')}
+          questions={QUESTIONS}
+          selectedIdx={pickerTarget === 'q1' ? q1Idx : q2Idx}
+          onSelect={(i) => {
+            if (pickerTarget === 'q1') { setQ1Idx(i); setA1(''); }
+            else { setQ2Idx(i); setA2(''); }
+          }}
+          onClose={() => setPickerTarget(null)}
+          cancelLabel={t('common.cancel')}
+        />
 
         <Pressable
           onPress={handleSaveAnswers}
@@ -416,9 +403,6 @@ const styles = StyleSheet.create({
     padding: 14, borderRadius: 12, borderWidth: 1,
   },
   qPickerText: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular' },
-  qDropdown: { borderRadius: 12, borderWidth: 1, overflow: 'hidden' },
-  qOption: { padding: 12 },
-  qOptionText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
   answerInput: {
     height: 48, borderRadius: 12, borderWidth: 1,
     paddingHorizontal: 14, fontSize: 15, fontFamily: 'Inter_400Regular',
