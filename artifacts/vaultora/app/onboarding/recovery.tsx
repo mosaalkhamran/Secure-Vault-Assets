@@ -185,11 +185,14 @@ export default function RecoverySetupScreen() {
           </View>
 
           {/* Examples */}
-          <View style={[styles.exCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.exLabel, { color: colors.mutedForeground }]}>{t('onboarding.recovery.phrase.examples')}</Text>
+          <View style={[styles.exCard, { backgroundColor: 'rgba(196,151,90,0.08)', borderColor: 'rgba(196,151,90,0.25)' }]}>
+            <View style={styles.exHeader}>
+              <Ionicons name="bulb-outline" size={15} color="#C4975A" />
+              <Text style={[styles.exLabel, { color: '#C4975A' }]}>{t('onboarding.recovery.phrase.examples')}</Text>
+            </View>
             {(t('onboarding.recovery.phrase.examplesList', { returnObjects: true, defaultValue: [] }) as string[]).map((ex, i) => (
               <View key={i} style={styles.exRow}>
-                <Ionicons name="ellipse" size={5} color={colors.mutedForeground} />
+                <Ionicons name="ellipse" size={4} color="rgba(196,151,90,0.6)" />
                 <Text style={[styles.exText, { color: colors.mutedForeground }]}>{ex}</Text>
               </View>
             ))}
@@ -258,7 +261,7 @@ export default function RecoverySetupScreen() {
         <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>أسئلة الأمان</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t('onboarding.recovery.questions.title')}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -385,8 +388,9 @@ const styles = StyleSheet.create({
     fontFamily: 'Inter_400Regular', fontSize: 15, textAlignVertical: 'top',
   },
   errorText: { fontSize: 13, fontFamily: 'Inter_400Regular' },
-  exCard: { borderRadius: 14, padding: 14, borderWidth: StyleSheet.hairlineWidth, gap: 8 },
-  exLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', marginBottom: 2 },
+  exCard: { borderRadius: 14, padding: 14, borderWidth: 1, gap: 8 },
+  exHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 },
+  exLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold' },
   exRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   exText: { fontSize: 13, fontFamily: 'Inter_400Regular', fontStyle: 'italic' },
   saveBtn: {
