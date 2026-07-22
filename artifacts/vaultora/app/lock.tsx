@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 import PinPad from '@/components/PinPad';
@@ -11,6 +12,7 @@ import PinPad from '@/components/PinPad';
 export default function LockScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const {
     verifyPin, authenticateWithFaceId, unlock,
     settings, isFaceIdAvailable,
@@ -95,8 +97,8 @@ export default function LockScreen() {
 
   const attemptsWarning = failedAttempts >= 3
     ? failedAttempts >= 5
-      ? `${failedAttempts} failed attempts`
-      : `${failedAttempts} incorrect attempts`
+      ? t('lock.failedAttempts_other', { count: failedAttempts })
+      : t('lock.incorrectAttempts_other', { count: failedAttempts })
     : undefined;
 
   return (
@@ -120,7 +122,7 @@ export default function LockScreen() {
           <Ionicons name="shield-checkmark" size={42} color="#C4975A" />
         </View>
         <Text style={styles.appName}>Vaultora</Text>
-        <Text style={[styles.tagline, { color: colors.mutedForeground }]}>Your private vault</Text>
+        <Text style={[styles.tagline, { color: colors.mutedForeground }]}>{t('lock.subtitle')}</Text>
       </Animated.View>
 
       {/* Locked-out state */}
@@ -128,12 +130,12 @@ export default function LockScreen() {
         <View style={styles.lockedOutSection}>
           <View style={[styles.lockedOutBox, { backgroundColor: colors.card, borderColor: 'rgba(224,85,85,0.3)' }]}>
             <Ionicons name="time-outline" size={28} color={colors.destructive} />
-            <Text style={[styles.lockedOutTitle, { color: colors.destructive }]}>Too many attempts</Text>
+            <Text style={[styles.lockedOutTitle, { color: colors.destructive }]}>{t('lock.tooManyAttempts')}</Text>
             <Text style={[styles.lockedOutTimer, { color: colors.foreground }]}>
-              Try again in {countdown}s
+              {t('lock.tryAgain', { seconds: countdown })}
             </Text>
             <Text style={[styles.lockedOutHint, { color: colors.mutedForeground }]}>
-              Or use Face ID / Recovery Key
+              {t('lock.orUseFaceId')}
             </Text>
           </View>
         </View>
@@ -153,7 +155,7 @@ export default function LockScreen() {
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         <Pressable onPress={() => router.push('/forgot-pin')} style={styles.forgotBtn}>
           <Ionicons name="help-circle-outline" size={15} color={colors.mutedForeground} />
-          <Text style={[styles.forgotText, { color: colors.mutedForeground }]}>Forgot PIN?</Text>
+          <Text style={[styles.forgotText, { color: colors.mutedForeground }]}>{t('lock.forgotPin')}</Text>
         </Pressable>
       </View>
     </View>

@@ -4,21 +4,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
-
-const FEATURES = [
-  { icon: 'shield-checkmark-outline', title: 'Military-grade encryption', desc: 'AES-256-GCM protects every photo and video' },
-  { icon: 'eye-off-outline', title: 'Zero visibility', desc: 'App Switcher and notifications never reveal contents' },
-  { icon: 'scan-outline', title: 'Face ID unlock', desc: 'Instant access with your face — no PIN every time' },
-  { icon: 'cloud-outline', title: 'iCloud backup', desc: 'Encrypted automatic sync — free for everyone' },
-];
 
 export default function OnboardingWelcomeScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { cloudRestoreAvailable, restoreFromCloud, unlock } = useVault();
   const [restoring, setRestoring] = React.useState(false);
+
+  const FEATURES = [
+    { icon: 'shield-checkmark-outline', title: t('onboarding.welcome.features.encryptionTitle'), desc: t('onboarding.welcome.features.encryptionDesc') },
+    { icon: 'eye-off-outline', title: t('onboarding.welcome.features.zeroVisibilityTitle'), desc: t('onboarding.welcome.features.zeroVisibilityDesc') },
+    { icon: 'scan-outline', title: t('onboarding.welcome.features.faceIdTitle'), desc: t('onboarding.welcome.features.faceIdDesc') },
+    { icon: 'cloud-outline', title: t('onboarding.welcome.features.iCloudTitle'), desc: t('onboarding.welcome.features.iCloudDesc') },
+  ];
 
   const handleRestore = async () => {
     setRestoring(true);
@@ -28,7 +30,7 @@ export default function OnboardingWelcomeScreen() {
       unlock();
       router.replace('/');
     } else {
-      Alert.alert('تعذّرت الاستعادة', 'تأكد من اتصالك بالإنترنت وتفعيل iCloud، ثم حاول مجدداً.');
+      Alert.alert(t('common.error'), t('onboarding.welcome.restoreDesc'));
     }
   };
 
@@ -44,9 +46,9 @@ export default function OnboardingWelcomeScreen() {
           <Ionicons name="shield-checkmark" size={52} color="#C4975A" />
         </View>
         <Text style={[styles.appName, { color: colors.foreground }]}>Vaultora</Text>
-        <Text style={[styles.tagline, { color: '#C4975A' }]}>Your private vault</Text>
+        <Text style={[styles.tagline, { color: '#C4975A' }]}>{t('onboarding.welcome.tagline')}</Text>
         <Text style={[styles.description, { color: colors.mutedForeground }]}>
-          The most private place for your photos and videos — locked, encrypted, and under your control.
+          {t('onboarding.welcome.description')}
         </Text>
       </View>
 
@@ -77,8 +79,8 @@ export default function OnboardingWelcomeScreen() {
               : <Ionicons name="cloud-download-outline" size={18} color="#5E9EFA" />
             }
             <View style={{ flex: 1 }}>
-              <Text style={[styles.restoreTitle, { color: '#5E9EFA' }]}>استعادة خزنتك من iCloud</Text>
-              <Text style={[styles.restoreDesc, { color: colors.mutedForeground }]}>وجدنا نسخة احتياطية — اضغط لاستعادتها</Text>
+              <Text style={[styles.restoreTitle, { color: '#5E9EFA' }]}>{t('onboarding.welcome.restoreTitle')}</Text>
+              <Text style={[styles.restoreDesc, { color: colors.mutedForeground }]}>{t('onboarding.welcome.restoreDesc')}</Text>
             </View>
             <Ionicons name="chevron-forward" size={14} color="#5E9EFA" />
           </Pressable>
@@ -88,11 +90,11 @@ export default function OnboardingWelcomeScreen() {
           onPress={() => router.push('/onboarding/face-id')}
           style={({ pressed }) => [styles.getStartedBtn, { backgroundColor: '#C4975A', opacity: pressed ? 0.9 : 1 }]}
         >
-          <Text style={styles.getStartedText}>إعداد جديد</Text>
+          <Text style={styles.getStartedText}>{t('onboarding.welcome.setupNew')}</Text>
           <Ionicons name="arrow-forward" size={18} color="#0A0A12" />
         </Pressable>
         <Text style={[styles.legal, { color: colors.mutedForeground }]}>
-          By continuing you agree to our Privacy Policy and Terms of Use
+          {t('onboarding.welcome.legal')}
         </Text>
       </View>
     </View>

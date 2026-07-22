@@ -60,9 +60,12 @@
     "expo-clipboard": "^8.0.8",
     "expo-file-system": "^19.0.23",
     "expo-local-authentication": "^17.0.8",
+    "expo-localization": "^57.0.1",
     "expo-media-library": "~18.2.1",
     "expo-secure-store": "^15.0.8",
+    "i18next": "^26.3.6",
     "js-sha256": "^0.11.1",
+    "react-i18next": "^17.0.10",
     "react-native-cloud-store": "^0.12.0"
   }
 }

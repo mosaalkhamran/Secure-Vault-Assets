@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, VaultItem } from '@/contexts/VaultContext';
 
@@ -25,6 +26,7 @@ export default function AlbumDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { albums, vaultItems, softDelete, toggleFavorite, removeItemsFromAlbum, exportToPhotos } = useVault();
 
   const album = albums.find(a => a.id === id);
@@ -60,10 +62,10 @@ export default function AlbumDetailScreen() {
   };
 
   const handleDeleteSelected = async () => {
-    Alert.alert('Move to Trash', `Move ${selectedIds.size} item(s) to trash?`, [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('album.moveTitle'), t('album.moveMsg', { count: selectedIds.size }), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Move to Trash', style: 'destructive',
+        text: t('album.moveToTrash'), style: 'destructive',
         onPress: async () => {
           for (const itemId of selectedIds) await softDelete(itemId);
           setSelectedIds(new Set());
@@ -79,7 +81,7 @@ export default function AlbumDetailScreen() {
       if (ok) count++;
     }
     setSelectedIds(new Set());
-    Alert.alert('Exported', `${count} item(s) saved to Photos.`);
+    Alert.alert(t('album.exported'), t('album.exportedCount', { count }));
   };
 
   const handleFavoriteSelected = async () => {
@@ -90,7 +92,7 @@ export default function AlbumDetailScreen() {
   if (!album) {
     return (
       <View style={[styles.container, { backgroundColor: '#0A0A12', alignItems: 'center', justifyContent: 'center' }]}>
-        <Text style={{ color: '#FFF', fontSize: 16 }}>Album not found.</Text>
+        <Text style={{ color: '#FFF', fontSize: 16 }}>{t('album.notFound')}</Text>
       </View>
     );
   }
@@ -107,17 +109,17 @@ export default function AlbumDetailScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={[styles.albumName, { color: colors.foreground }]} numberOfLines={1}>
-            {isSelecting ? `${selectedIds.size} selected` : album.name}
+            {isSelecting ? t('album.selected', { count: selectedIds.size }) : album.name}
           </Text>
           {!isSelecting && (
             <Text style={[styles.itemCount, { color: colors.mutedForeground }]}>
-              {items.length} {items.length === 1 ? 'item' : 'items'}
+              {items.length} {items.length === 1 ? t('album.item') : t('album.items')}
             </Text>
           )}
         </View>
         {isSelecting ? (
           <Pressable onPress={() => setSelectedIds(new Set(items.map(i => i.id)))} style={styles.backBtn}>
-            <Text style={[{ color: colors.primary, fontSize: 15, fontFamily: 'Inter_500Medium' }]}>All</Text>
+            <Text style={[{ color: colors.primary, fontSize: 15, fontFamily: 'Inter_500Medium' }]}>{t('common.all')}</Text>
           </Pressable>
         ) : (
           <View style={{ width: 40 }} />
@@ -130,9 +132,9 @@ export default function AlbumDetailScreen() {
           <View style={[styles.emptyIcon, { backgroundColor: colors.card }]}>
             <Ionicons name="images-outline" size={40} color={colors.mutedForeground} />
           </View>
-          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Empty Album</Text>
+          <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{t('album.empty')}</Text>
           <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-            Add items from the Library by long-pressing and selecting "Album"
+            {t('album.emptyDesc')}
           </Text>
         </View>
       ) : (
@@ -176,10 +178,10 @@ export default function AlbumDetailScreen() {
       {/* Multi-select toolbar */}
       {isSelecting && (
         <View style={[styles.toolbar, { backgroundColor: colors.card, paddingBottom: insets.bottom + 8 }]}>
-          <ToolbarBtn icon="heart-outline" label="Favorite" onPress={handleFavoriteSelected} color={colors.primary} />
-          <ToolbarBtn icon="arrow-undo-outline" label="Remove" onPress={handleRemoveSelected} color={colors.foreground} />
-          <ToolbarBtn icon="share-outline" label="Export" onPress={handleExportSelected} color={colors.foreground} />
-          <ToolbarBtn icon="trash-outline" label="Delete" onPress={handleDeleteSelected} color={colors.destructive} />
+          <ToolbarBtn icon="heart-outline" label={t('album.favorite')} onPress={handleFavoriteSelected} color={colors.primary} />
+          <ToolbarBtn icon="arrow-undo-outline" label={t('album.remove')} onPress={handleRemoveSelected} color={colors.foreground} />
+          <ToolbarBtn icon="share-outline" label={t('album.export')} onPress={handleExportSelected} color={colors.foreground} />
+          <ToolbarBtn icon="trash-outline" label={t('album.delete')} onPress={handleDeleteSelected} color={colors.destructive} />
         </View>
       )}
     </View>

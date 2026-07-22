@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, VaultItem } from '@/contexts/VaultContext';
 import VideoPlayer from '@/components/VideoPlayer';
@@ -16,6 +17,7 @@ const { width: SW, height: SH } = Dimensions.get('window');
 export default function ViewerScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
   const { vaultItems, trashedItems, toggleFavorite, softDelete, exportToPhotos } = useVault();
 
@@ -135,7 +137,7 @@ export default function ViewerScreen() {
         </TouchableOpacity>
         <View style={styles.topMeta}>
           <Text style={styles.topCounter}>
-            {currentIndex + 1} / {allItems.length}
+            {t('viewer.counter', { current: currentIndex + 1, total: allItems.length })}
           </Text>
         </View>
         <TouchableOpacity
@@ -152,16 +154,16 @@ export default function ViewerScreen() {
 
       {/* Bottom controls */}
       <Animated.View style={[styles.bottomBar, { paddingBottom: insets.bottom + 12, opacity: controlsAnim }]}>
-        <ActionBtn icon="share-outline" label="Export" onPress={handleExport} />
-        <ActionBtn icon="information-circle-outline" label="Info" onPress={() => {}} />
+        <ActionBtn icon="share-outline" label={t('viewer.export')} onPress={handleExport} />
+        <ActionBtn icon="information-circle-outline" label={t('viewer.info')} onPress={() => {}} />
         <ActionBtn
           icon={currentItem.isFavorite ? 'heart' : 'heart-outline'}
-          label="Favorite"
+          label={t('viewer.favorite')}
           onPress={() => toggleFavorite(currentItem.id)}
           color={currentItem.isFavorite ? '#E05555' : '#FFF'}
         />
         {source !== 'trash' && (
-          <ActionBtn icon="trash-outline" label="Delete" onPress={handleDelete} color="#E05555" />
+          <ActionBtn icon="trash-outline" label={t('viewer.delete')} onPress={handleDelete} color="#E05555" />
         )}
       </Animated.View>
 

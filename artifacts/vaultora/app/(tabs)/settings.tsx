@@ -7,13 +7,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 import PinPad from '@/components/PinPad';
+import { SUPPORTED_LANGUAGES, changeLanguage } from '@/services/i18n';
 
 export default function SettingsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t, i18n } = useTranslation();
   const {
     settings, vaultItems, trashedItems, lock, resetVault,
     updateSettings, enableFaceId, disableFaceId, isFaceIdAvailable,
@@ -27,7 +30,7 @@ export default function SettingsScreen() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (enabled) {
       const ok = await enableiCloudSync();
-      if (!ok) Alert.alert('iCloud غير متاح', 'تأكد من تسجيل الدخول بـ Apple ID وتفعيل iCloud في الإعدادات.');
+      if (!ok) Alert.alert(t('settings.backup.unavailable'), t('settings.backup.unavailableMsg'));
     } else {
       await disableiCloudSync();
     }
@@ -36,13 +39,32 @@ export default function SettingsScreen() {
   const handleSyncNow = async () => {
     if (isSyncing) return;
     await syncToCloud();
-    Alert.alert('تمت المزامنة ✓', 'تم رفع خزنتك إلى iCloud بنجاح.');
+    Alert.alert(t('settings.backup.syncSuccess'), t('settings.backup.syncSuccessMsg'));
   };
 
   const formatSyncTime = (iso: string | null) => {
-    if (!iso) return 'لم تتم بعد';
+    if (!iso) return t('settings.backup.lastSyncNever');
     const d = new Date(iso);
-    return d.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString(i18n.language === 'ar' ? 'ar-SA' : undefined, {
+      day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
+    });
+  };
+
+  const handleLanguageChange = () => {
+    const options = SUPPORTED_LANGUAGES.map(lang => ({
+      text: `${lang.flag} ${lang.label}${i18n.language === lang.code ? ' ✓' : ''}`,
+      onPress: async () => {
+        const { needsRestart } = await changeLanguage(lang.code);
+        if (needsRestart) {
+          Alert.alert(t('settings.language.restart'), t('settings.language.restartMsg'));
+        }
+      },
+    }));
+    Alert.alert(
+      t('settings.language.changeTitle'),
+      undefined,
+      [...options, { text: t('common.cancel'), style: 'cancel' as const, onPress: async () => {} }],
+    );
   };
 
   const totalBytes = vaultItems.reduce((s, i) => s + i.size, 0);
@@ -54,22 +76,22 @@ export default function SettingsScreen() {
   };
 
   const AUTO_LOCK_OPTIONS = [
-    { label: 'Immediately', value: 0 },
-    { label: '15 seconds', value: 15 },
-    { label: '30 seconds', value: 30 },
-    { label: '1 minute', value: 60 },
-    { label: '5 minutes', value: 300 },
-    { label: 'Never', value: -1 },
+    { label: t('settings.security.immediately'), value: 0 },
+    { label: t('settings.security.sec15'), value: 15 },
+    { label: t('settings.security.sec30'), value: 30 },
+    { label: t('settings.security.min1'), value: 60 },
+    { label: t('settings.security.min5'), value: 300 },
+    { label: t('settings.security.never'), value: -1 },
   ];
 
   const handleAutoLock = () => {
     Alert.alert(
-      'Auto-lock',
-      'Lock vault after:',
+      t('settings.security.autoLockTitle'),
+      t('settings.security.autoLockAfter'),
       AUTO_LOCK_OPTIONS.map(o => ({
         text: o.label + (settings.autoLockSeconds === o.value ? ' ✓' : ''),
         onPress: async () => { await updateSettings({ autoLockSeconds: o.value }); },
-      })).concat([{ text: 'Cancel', onPress: async () => {} }])
+      })).concat([{ text: t('common.cancel'), onPress: async () => {} }]),
     );
   };
 
@@ -84,20 +106,23 @@ export default function SettingsScreen() {
   };
 
   const handleResetVault = () => {
-    Alert.alert('Reset Vault', 'This permanently deletes all vault data, your PIN, and keys. Cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('settings.danger.resetTitle'), t('settings.danger.resetMsg'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Reset Vault', style: 'destructive',
+        text: t('settings.danger.reset'), style: 'destructive',
         onPress: () =>
-          Alert.alert('Final Confirmation', 'Delete everything forever?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete Everything', style: 'destructive', onPress: () => resetVault() },
+          Alert.alert(t('settings.danger.resetFinalTitle'), t('settings.danger.resetFinalMsg'), [
+            { text: t('common.cancel'), style: 'cancel' },
+            { text: t('settings.danger.deleteAll'), style: 'destructive', onPress: () => resetVault() },
           ]),
       },
     ]);
   };
 
-  const autoLockLabel = AUTO_LOCK_OPTIONS.find(o => o.value === settings.autoLockSeconds)?.label ?? '5 minutes';
+  const autoLockLabel = AUTO_LOCK_OPTIONS.find(o => o.value === settings.autoLockSeconds)?.label
+    ?? t('settings.security.min5');
+
+  const currentLang = SUPPORTED_LANGUAGES.find(l => l.code === i18n.language);
 
   const Section = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <View style={styles.section}>
@@ -111,44 +136,44 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Settings</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{t('settings.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Vault Stats */}
-        <Section title="VAULT">
-          <Row icon="images-outline" iconColor={colors.primary} label="Photos" value={String(vaultItems.filter(i => i.type === 'photo').length)} colors={colors} />
+        <Section title={t('settings.vault.title')}>
+          <Row icon="images-outline" iconColor={colors.primary} label={t('settings.vault.photos')} value={String(vaultItems.filter(i => i.type === 'photo').length)} colors={colors} />
           <Divider colors={colors} />
-          <Row icon="videocam-outline" iconColor={colors.primary} label="Videos" value={String(vaultItems.filter(i => i.type === 'video').length)} colors={colors} />
+          <Row icon="videocam-outline" iconColor={colors.primary} label={t('settings.vault.videos')} value={String(vaultItems.filter(i => i.type === 'video').length)} colors={colors} />
           <Divider colors={colors} />
-          <Row icon="server-outline" iconColor={colors.primary} label="Storage Used" value={formatSize(totalBytes)} colors={colors} />
+          <Row icon="server-outline" iconColor={colors.primary} label={t('settings.vault.storage')} value={formatSize(totalBytes)} colors={colors} />
           {trashedItems.length > 0 && <><Divider colors={colors} />
-          <Row icon="trash-outline" iconColor={colors.destructive} label="Deleted Items" value={String(trashedItems.length)} onPress={() => router.push('/trash')} colors={colors} /></>}
+          <Row icon="trash-outline" iconColor={colors.destructive} label={t('settings.vault.deletedItems')} value={String(trashedItems.length)} onPress={() => router.push('/trash')} colors={colors} /></>}
         </Section>
 
         {/* Security */}
-        <Section title="SECURITY">
-          <Row icon="keypad-outline" iconColor="#5E9EFA" label="Change PIN" onPress={() => setShowChangePinModal(true)} colors={colors} chevron />
+        <Section title={t('settings.security.title')}>
+          <Row icon="keypad-outline" iconColor="#5E9EFA" label={t('settings.security.changePin')} onPress={() => setShowChangePinModal(true)} colors={colors} chevron />
           <Divider colors={colors} />
           {isFaceIdAvailable && <>
             <Row
-              icon="scan-outline" iconColor="#5E9EFA" label="Face ID"
+              icon="scan-outline" iconColor="#5E9EFA" label={t('settings.security.faceId')}
               toggle={settings.faceIdEnabled}
               onToggle={handleFaceIdToggle}
               colors={colors}
             />
             <Divider colors={colors} />
           </>}
-          <Row icon="timer-outline" iconColor="#5E9EFA" label="Auto-lock" value={autoLockLabel} onPress={handleAutoLock} colors={colors} chevron />
+          <Row icon="timer-outline" iconColor="#5E9EFA" label={t('settings.security.autoLock')} value={autoLockLabel} onPress={handleAutoLock} colors={colors} chevron />
         </Section>
 
         {/* Privacy */}
-        <Section title="PRIVACY">
+        <Section title={t('settings.privacy.title')}>
           <Row
             icon="eye-off-outline" iconColor="#9B59B6"
-            label="Privacy Cover"
-            description="Show calculator instead of vault"
+            label={t('settings.privacy.cover')}
+            description={t('settings.privacy.coverDesc')}
             toggle={settings.privacyCoverEnabled}
             onToggle={v => updateSettings({ privacyCoverEnabled: v })}
             colors={colors}
@@ -158,14 +183,14 @@ export default function SettingsScreen() {
             <Divider colors={colors} />
             <Row
               icon="calculator-outline" iconColor="#9B59B6"
-              label="Cover Type" value="Calculator"
+              label={t('settings.privacy.coverType')} value="Calculator"
               onPress={() => router.push('/privacy-cover/calculator')}
               colors={colors} chevron
             />
             <Divider colors={colors} />
             <Row
               icon="eye-outline" iconColor="#9B59B6"
-              label="Preview Cover"
+              label={t('settings.privacy.previewCover')}
               onPress={() => router.push('/privacy-cover/calculator')}
               colors={colors} chevron
             />
@@ -173,24 +198,24 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Recovery */}
-        <Section title="RECOVERY">
+        <Section title={t('settings.recovery.title')}>
           <Row
             icon="chatbubble-ellipses-outline" iconColor="#F5A623"
-            label="طرق الاسترجاع"
-            description="الجملة السرية · أسئلة الأمان · Face ID"
+            label={t('settings.recovery.methods')}
+            description={t('settings.recovery.methodsDesc')}
             onPress={() => router.push('/onboarding/recovery')}
             colors={colors} chevron
           />
         </Section>
 
-        {/* iCloud Sync */}
-        <Section title="النسخ الاحتياطي">
+        {/* iCloud Backup */}
+        <Section title={t('settings.backup.title')}>
           <Row
             icon="cloud-outline" iconColor="#5E9EFA"
-            label="مزامنة iCloud"
+            label={t('settings.backup.icloud')}
             description={settings.iCloudSyncEnabled
-              ? `آخر مزامنة: ${formatSyncTime(lastSyncAt)}`
-              : 'احفظ خزنتك تلقائياً — مجاني ومشفّر'}
+              ? t('settings.backup.lastSync', { time: formatSyncTime(lastSyncAt) })
+              : t('settings.backup.icloudDesc')}
             toggle={settings.iCloudSyncEnabled}
             onToggle={handleSyncToggle}
             colors={colors}
@@ -201,7 +226,7 @@ export default function SettingsScreen() {
               <Row
                 icon={isSyncing ? 'sync-outline' : 'refresh-outline'}
                 iconColor="#5E9EFA"
-                label={isSyncing ? 'جارٍ المزامنة...' : 'مزامنة الآن'}
+                label={isSyncing ? t('settings.backup.syncing') : t('settings.backup.syncNow')}
                 onPress={handleSyncNow}
                 colors={colors}
                 chevron={!isSyncing}
@@ -210,39 +235,50 @@ export default function SettingsScreen() {
           )}
         </Section>
 
+        {/* Language */}
+        <Section title={t('settings.language.title')}>
+          <Row
+            icon="language-outline" iconColor="#5E9EFA"
+            label={t('settings.language.label')}
+            value={currentLang ? `${currentLang.flag} ${currentLang.label}` : i18n.language.toUpperCase()}
+            onPress={handleLanguageChange}
+            colors={colors} chevron
+          />
+        </Section>
+
         {/* Subscription */}
-        <Section title="SUBSCRIPTION">
-          <Row icon="star-outline" iconColor="#C4975A" label="Current Plan" value={settings.isPremium ? 'Premium' : 'Free'} colors={colors} />
+        <Section title={t('settings.subscription.title')}>
+          <Row icon="star-outline" iconColor="#C4975A" label={t('settings.subscription.currentPlan')} value={settings.isPremium ? t('settings.subscription.premium') : t('settings.subscription.free')} colors={colors} />
           {!settings.isPremium && <>
             <Divider colors={colors} />
-            <Row icon="arrow-up-circle-outline" iconColor="#C4975A" label="Upgrade to Premium" onPress={() => router.push('/subscription')} colors={colors} chevron />
+            <Row icon="arrow-up-circle-outline" iconColor="#C4975A" label={t('settings.subscription.upgrade')} onPress={() => router.push('/subscription')} colors={colors} chevron />
           </>}
           <Divider colors={colors} />
-          <Row icon="refresh-circle-outline" iconColor={colors.mutedForeground} label="Restore Purchases" onPress={() => Alert.alert('Restore', 'No previous purchases found.')} colors={colors} />
+          <Row icon="refresh-circle-outline" iconColor={colors.mutedForeground} label={t('settings.subscription.restore')} onPress={() => Alert.alert('Restore', 'No previous purchases found.')} colors={colors} />
         </Section>
 
         {/* App */}
-        <Section title="APP">
-          <Row icon="apps-outline" iconColor="#5E9EFA" label="App Icon" description="Premium" value="Default" onPress={() => router.push('/subscription')} colors={colors} premium />
+        <Section title={t('settings.app.title')}>
+          <Row icon="apps-outline" iconColor="#5E9EFA" label={t('settings.app.icon')} description="Premium" value="Default" onPress={() => router.push('/subscription')} colors={colors} premium />
           <Divider colors={colors} />
-          <Row icon="document-text-outline" iconColor={colors.mutedForeground} label="Privacy Policy" onPress={() => router.push('/legal/privacy-policy')} colors={colors} chevron />
+          <Row icon="document-text-outline" iconColor={colors.mutedForeground} label={t('settings.app.privacy')} onPress={() => router.push('/legal/privacy-policy')} colors={colors} chevron />
           <Divider colors={colors} />
-          <Row icon="reader-outline" iconColor={colors.mutedForeground} label="Terms of Use" onPress={() => router.push('/legal/terms')} colors={colors} chevron />
+          <Row icon="reader-outline" iconColor={colors.mutedForeground} label={t('settings.app.terms')} onPress={() => router.push('/legal/terms')} colors={colors} chevron />
           <Divider colors={colors} />
-          <Row icon="information-circle-outline" iconColor={colors.mutedForeground} label="About & Support" onPress={() => router.push('/legal/about')} colors={colors} chevron />
+          <Row icon="information-circle-outline" iconColor={colors.mutedForeground} label={t('settings.app.about')} onPress={() => router.push('/legal/about')} colors={colors} chevron />
         </Section>
 
         {/* Decoy Vault */}
-        <Section title="DECOY VAULT">
+        <Section title={t('settings.decoy.title')}>
           <Row
             icon="glasses-outline" iconColor="#9B59B6"
-            label="Decoy Vault PIN"
-            description={hasDecoyPin ? 'A decoy PIN is set — entering it shows an empty vault' : 'Set a fake PIN that opens an empty vault'}
+            label={t('settings.decoy.title')}
+            description={hasDecoyPin ? t('settings.decoy.activeDesc') : t('settings.decoy.desc')}
             onPress={() => {
               if (hasDecoyPin) {
-                Alert.alert('Decoy Vault', 'A decoy PIN is active.', [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Remove Decoy PIN', style: 'destructive', onPress: () => removeDecoyPin() },
+                Alert.alert(t('settings.decoy.title'), t('settings.decoy.activeDesc'), [
+                  { text: t('common.cancel'), style: 'cancel' },
+                  { text: t('settings.decoy.remove'), style: 'destructive', onPress: () => removeDecoyPin() },
                 ]);
               } else {
                 router.push('/setup-decoy-pin');
@@ -255,14 +291,14 @@ export default function SettingsScreen() {
         </Section>
 
         {/* Danger */}
-        <Section title="DANGER ZONE">
-          <Row icon="lock-closed-outline" iconColor={colors.mutedForeground} label="Lock Vault" onPress={lock} colors={colors} />
+        <Section title={t('settings.danger.title')}>
+          <Row icon="lock-closed-outline" iconColor={colors.mutedForeground} label={t('settings.danger.lock')} onPress={lock} colors={colors} />
           <Divider colors={colors} />
-          <Row icon="trash-outline" iconColor={colors.destructive} label="Reset Vault" description="Delete all data permanently" onPress={handleResetVault} colors={colors} danger />
+          <Row icon="trash-outline" iconColor={colors.destructive} label={t('settings.danger.reset')} description={t('settings.danger.resetDesc')} onPress={handleResetVault} colors={colors} danger />
         </Section>
 
         <Text style={[styles.footer, { color: colors.mutedForeground }]}>
-          Vaultora · All data stays on your device{'\n'}The developer cannot access your files
+          {t('settings.footer')}
         </Text>
       </ScrollView>
 
@@ -316,6 +352,7 @@ function Divider({ colors }: { colors: any }) {
 }
 
 function ChangePinModal({ visible, onClose, colors }: { visible: boolean; onClose: () => void; colors: any }) {
+  const { t } = useTranslation();
   const { verifyPin, createPin } = useVault();
   const [step, setStep] = useState<'old' | 'new' | 'confirm'>('old');
   const [newPin, setNewPin] = useState('');
@@ -328,17 +365,19 @@ function ChangePinModal({ visible, onClose, colors }: { visible: boolean; onClos
     if (valid) { setStep('new'); setError(false); }
     else setError(true);
   };
-
   const handleNewPin = (pin: string) => { setNewPin(pin); setStep('confirm'); };
-
   const handleConfirm = async (pin: string) => {
     if (pin !== newPin) { setError(true); return; }
     await createPin(pin);
-    Alert.alert('Success', 'Your PIN has been changed.');
+    Alert.alert(t('common.success'), 'Your PIN has been changed.');
     reset();
   };
 
-  const titles = { old: 'Enter Current PIN', new: 'Enter New PIN', confirm: 'Confirm New PIN' };
+  const titles = {
+    old: 'Enter Current PIN',
+    new: 'Enter New PIN',
+    confirm: t('onboarding.confirmPin.title'),
+  };
   const handlers = { old: handleOldPin, new: handleNewPin, confirm: handleConfirm };
 
   return (
@@ -350,10 +389,10 @@ function ChangePinModal({ visible, onClose, colors }: { visible: boolean; onClos
             onComplete={handlers[step]}
             error={error}
             onErrorReset={() => setError(false)}
-            subtitle={error ? (step === 'old' ? 'Wrong PIN' : 'PINs do not match') : undefined}
+            subtitle={error ? (step === 'old' ? 'Wrong PIN' : t('onboarding.confirmPin.error')) : undefined}
           />
           <Pressable onPress={reset} style={styles.modalCancel}>
-            <Text style={[styles.modalCancelText, { color: colors.mutedForeground }]}>Cancel</Text>
+            <Text style={[styles.modalCancelText, { color: colors.mutedForeground }]}>{t('common.cancel')}</Text>
           </Pressable>
         </Pressable>
       </Pressable>

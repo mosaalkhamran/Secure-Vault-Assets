@@ -4,12 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 
 export default function FaceIdScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { enableFaceId, isFaceIdAvailable } = useVault();
   const [status, setStatus] = useState<'idle' | 'success' | 'denied'>('idle');
 
@@ -44,21 +46,19 @@ export default function FaceIdScreen() {
             </View>
           </LinearGradient>
           <Text style={[styles.title, { color: colors.foreground }]}>
-            {isFaceIdAvailable ? 'Enable Face ID' : 'Quick Setup'}
+            {isFaceIdAvailable ? t('onboarding.faceId.title') : t('onboarding.faceId.quickSetup')}
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            {isFaceIdAvailable
-              ? 'Unlock instantly with your face — no PIN needed every time'
-              : 'Face ID is not available on this device. You can set it up in Settings after enrolling biometrics.'}
+            {isFaceIdAvailable ? t('onboarding.faceId.subtitle') : t('onboarding.faceId.unavailable')}
           </Text>
         </View>
 
         {isFaceIdAvailable && (
           <View style={[styles.featureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
-              { icon: 'flash-outline',           label: 'Instant unlock — just look at your phone' },
-              { icon: 'shield-checkmark-outline', label: 'Face data stays on your device, always' },
-              { icon: 'cloud-outline',            label: 'Vault settings sync via iCloud Keychain' },
+              { icon: 'flash-outline',           label: t('onboarding.faceId.benefit1') },
+              { icon: 'shield-checkmark-outline', label: t('onboarding.faceId.benefit2') },
+              { icon: 'cloud-outline',            label: t('onboarding.faceId.benefit3') },
             ].map((f, i) => (
               <View key={i} style={styles.featureRow}>
                 <Ionicons name={f.icon as any} size={18} color={colors.primary} />
@@ -72,7 +72,7 @@ export default function FaceIdScreen() {
           <View style={[styles.warningBox, { backgroundColor: 'rgba(224,85,85,0.1)', borderColor: 'rgba(224,85,85,0.3)' }]}>
             <Ionicons name="warning-outline" size={16} color={colors.destructive} />
             <Text style={[styles.warningText, { color: colors.destructive }]}>
-              Face ID access was denied. You can enable it later in Settings → Privacy → Face ID & Passcode → Vaultora.
+              {t('onboarding.faceId.denied')}
             </Text>
           </View>
         )}
@@ -80,7 +80,7 @@ export default function FaceIdScreen() {
         {status === 'success' && (
           <View style={[styles.successBox, { backgroundColor: 'rgba(76,175,135,0.1)', borderColor: 'rgba(76,175,135,0.3)' }]}>
             <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF87" />
-            <Text style={[styles.successText, { color: '#4CAF87' }]}>Face ID enabled! Setting up your PIN backup…</Text>
+            <Text style={[styles.successText, { color: '#4CAF87' }]}>{t('onboarding.faceId.success')}</Text>
           </View>
         )}
 
@@ -91,7 +91,7 @@ export default function FaceIdScreen() {
               style={({ pressed }) => [styles.enableBtn, { backgroundColor: colors.primary, opacity: pressed ? 0.85 : 1 }]}
             >
               <Ionicons name="scan-outline" size={18} color={colors.primaryForeground} />
-              <Text style={[styles.enableBtnText, { color: colors.primaryForeground }]}>Enable Face ID</Text>
+              <Text style={[styles.enableBtnText, { color: colors.primaryForeground }]}>{t('onboarding.faceId.title')}</Text>
             </Pressable>
           )}
           <Pressable
@@ -99,7 +99,7 @@ export default function FaceIdScreen() {
             style={({ pressed }) => [styles.skipBtn, { borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
           >
             <Text style={[styles.skipBtnText, { color: colors.mutedForeground }]}>
-              {isFaceIdAvailable ? 'Use PIN only' : 'Continue'}
+              {isFaceIdAvailable ? t('onboarding.faceId.usePin') : t('onboarding.faceId.continueBtn')}
             </Text>
           </Pressable>
         </View>

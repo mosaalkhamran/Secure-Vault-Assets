@@ -6,20 +6,9 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
-
-// ─── Security questions list ──────────────────────────────────────────────────
-export const SECURITY_QUESTIONS = [
-  'ما اسم حيوانك الأليف الأول؟',
-  'في أي مدينة وُلدت؟',
-  'ما اسم مدرستك الابتدائية؟',
-  'ما اسم أفضل صديق لك في طفولتك؟',
-  'ما لقب فريقك الرياضي المفضل؟',
-  'ما اسم الشارع الذي كبرت فيه؟',
-  'ما اسم والدتك قبل الزواج؟',
-  'ما طراز أول سيارة امتلكتها؟',
-];
 
 type Mode = 'choose' | 'phrase' | 'questions';
 type QStep = 'q1' | 'q2' | 'done';
@@ -27,6 +16,8 @@ type QStep = 'q1' | 'q2' | 'done';
 export default function RecoverySetupScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const QUESTIONS = t('onboarding.recovery.questions_list', { returnObjects: true }) as string[];
   const { completeSetup, unlock, setupRecoveryPhrase, setupSecurityQuestions } = useVault();
 
   const [mode, setMode] = useState<Mode>('choose');
@@ -54,33 +45,33 @@ export default function RecoverySetupScreen() {
   // ── Phrase handlers ───────────────────────────────────────────────────────
   const handleSavePhrase = async () => {
     if (phrase.trim().length < 8) {
-      setPhraseError('يجب أن تكون الجملة 8 أحرف على الأقل');
+      setPhraseError(t('onboarding.recovery.phrase.errorLength'));
       return;
     }
     if (phrase.trim().toLowerCase() !== phraseConfirm.trim().toLowerCase()) {
-      setPhraseError('الجملتان غير متطابقتان');
+      setPhraseError(t('onboarding.recovery.phrase.errorMatch'));
       return;
     }
     setPhraseError('');
     await setupRecoveryPhrase(phrase.trim());
-    Alert.alert('تم الحفظ ✓', 'تم تخزين جملة الاسترجاع بأمان.', [
-      { text: 'افتح الخزنة', onPress: finish },
+    Alert.alert(t('common.success'), t('onboarding.recovery.phrase.save'), [
+      { text: t('onboarding.recovery.phrase.save'), onPress: finish },
     ]);
   };
 
   // ── Questions handlers ────────────────────────────────────────────────────
   const handleSaveAnswers = async () => {
     if (a1.trim().length < 2 || a2.trim().length < 2) {
-      Alert.alert('تنبيه', 'يرجى الإجابة على كلا السؤالين');
+      Alert.alert(t('common.warning'), t('onboarding.recovery.questions.errorBothRequired'));
       return;
     }
     if (q1Idx === q2Idx) {
-      Alert.alert('تنبيه', 'اختر سؤالين مختلفين');
+      Alert.alert(t('common.warning'), t('onboarding.recovery.questions.errorDifferent'));
       return;
     }
     await setupSecurityQuestions([a1.trim(), a2.trim()]);
-    Alert.alert('تم الحفظ ✓', 'تم تخزين إجاباتك بأمان.', [
-      { text: 'افتح الخزنة', onPress: finish },
+    Alert.alert(t('common.success'), t('onboarding.recovery.questions.note'), [
+      { text: t('onboarding.recovery.questions.save'), onPress: finish },
     ]);
   };
 
@@ -105,9 +96,9 @@ export default function RecoverySetupScreen() {
             <View style={[styles.iconBg, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
               <Ionicons name="shield-half-outline" size={32} color="#C4975A" />
             </View>
-            <Text style={[styles.title, { color: colors.foreground }]}>طريقة الاسترجاع</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('onboarding.recovery.title')}</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              إذا نسيت رقم سرك أو أُعطل Face ID، كيف تريد استرجاع خزنتك؟
+              {t('onboarding.recovery.subtitle')}
             </Text>
           </View>
 
@@ -121,12 +112,12 @@ export default function RecoverySetupScreen() {
                 <Ionicons name="chatbubble-ellipses-outline" size={24} color="#C4975A" />
               </View>
               <View style={styles.optBody}>
-                <Text style={[styles.optTitle, { color: colors.foreground }]}>جملة سرية</Text>
+                <Text style={[styles.optTitle, { color: colors.foreground }]}>{t('onboarding.recovery.phrase.title')}</Text>
                 <Text style={[styles.optDesc, { color: colors.mutedForeground }]}>
-                  أي جملة تحفظها — مثل: "أول سيارتي كانت تويوتا 2008"
+                  {t('onboarding.recovery.phrase.subtitle')}
                 </Text>
                 <View style={[styles.badge, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
-                  <Text style={[styles.badgeText, { color: '#C4975A' }]}>موصى به</Text>
+                  <Text style={[styles.badgeText, { color: '#C4975A' }]}>{t('onboarding.recovery.phrase.badge')}</Text>
                 </View>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
@@ -141,9 +132,9 @@ export default function RecoverySetupScreen() {
                 <Ionicons name="help-circle-outline" size={24} color="#5E9EFA" />
               </View>
               <View style={styles.optBody}>
-                <Text style={[styles.optTitle, { color: colors.foreground }]}>أسئلة أمان</Text>
+                <Text style={[styles.optTitle, { color: colors.foreground }]}>{t('onboarding.recovery.questions.title')}</Text>
                 <Text style={[styles.optDesc, { color: colors.mutedForeground }]}>
-                  اختر سؤالين وأجب عليهما — مألوف وسهل
+                  {t('onboarding.recovery.questions.subtitle')}
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />
@@ -153,16 +144,16 @@ export default function RecoverySetupScreen() {
             <View style={[styles.icloudCard, { backgroundColor: 'rgba(94,158,250,0.07)', borderColor: 'rgba(94,158,250,0.2)' }]}>
               <Ionicons name="cloud-outline" size={18} color="#5E9EFA" />
               <View style={{ flex: 1 }}>
-                <Text style={[styles.icloudTitle, { color: '#5E9EFA' }]}>iCloud Keychain — تلقائي دائماً</Text>
+                <Text style={[styles.icloudTitle, { color: '#5E9EFA' }]}>{t('onboarding.recovery.icloud.title')}</Text>
                 <Text style={[styles.icloudDesc, { color: colors.mutedForeground }]}>
-                  عند تغيير جوالك وتسجيل نفس Apple ID، ستجد خزنتك جاهزة بدون أي خطوة إضافية.
+                  {t('onboarding.recovery.icloud.desc')}
                 </Text>
               </View>
             </View>
 
             {/* Skip */}
             <Pressable onPress={finish} style={{ alignItems: 'center', paddingVertical: 8 }}>
-              <Text style={[styles.skipText, { color: colors.mutedForeground }]}>تخطي — سأعتمد على Face ID فقط</Text>
+              <Text style={[styles.skipText, { color: colors.mutedForeground }]}>{t('onboarding.recovery.skipLabel')}</Text>
             </Pressable>
           </View>
         </ScrollView>
@@ -178,7 +169,7 @@ export default function RecoverySetupScreen() {
           <Pressable onPress={() => setMode('choose')} style={styles.backBtn}>
             <Ionicons name="chevron-back" size={24} color={colors.foreground} />
           </Pressable>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>جملة سرية</Text>
+          <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t('onboarding.recovery.phrase.title')}</Text>
           <View style={styles.backBtn} />
         </View>
 
@@ -187,20 +178,16 @@ export default function RecoverySetupScreen() {
             <View style={[styles.iconBg, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
               <Ionicons name="chatbubble-ellipses-outline" size={28} color="#C4975A" />
             </View>
-            <Text style={[styles.title, { color: colors.foreground }]}>اكتب جملة لا تنساها</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{t('onboarding.recovery.phrase.label')}</Text>
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              أي جملة تعرفها — لا تحتاج لحفظها في مكان آخر
+              {t('onboarding.recovery.phrase.subtitle')}
             </Text>
           </View>
 
           {/* Examples */}
           <View style={[styles.exCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
-            <Text style={[styles.exLabel, { color: colors.mutedForeground }]}>أمثلة:</Text>
-            {[
-              'ولدت في الرياض سنة 1990',
-              'اسم كلبي ماكس وهو بني اللون',
-              'درست في جامعة الملك عبدالله',
-            ].map((ex, i) => (
+            <Text style={[styles.exLabel, { color: colors.mutedForeground }]}>{t('onboarding.recovery.phrase.examples')}</Text>
+            {(t('onboarding.recovery.phrase.examplesList', { returnObjects: true, defaultValue: [] }) as string[]).map((ex, i) => (
               <View key={i} style={styles.exRow}>
                 <Ionicons name="ellipse" size={5} color={colors.mutedForeground} />
                 <Text style={[styles.exText, { color: colors.mutedForeground }]}>{ex}</Text>
@@ -209,11 +196,11 @@ export default function RecoverySetupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>الجملة السرية</Text>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>{t('onboarding.recovery.phrase.label')}</Text>
             <TextInput
               value={phrase}
               onChangeText={v => { setPhrase(v); setPhraseError(''); }}
-              placeholder="اكتب جملتك هنا..."
+              placeholder={t('onboarding.recovery.phrase.placeholder')}
               placeholderTextColor={colors.mutedForeground}
               multiline
               autoCapitalize="sentences"
@@ -226,11 +213,11 @@ export default function RecoverySetupScreen() {
           </View>
 
           <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>تأكيد الجملة</Text>
+            <Text style={[styles.inputLabel, { color: colors.mutedForeground }]}>{t('onboarding.recovery.phrase.confirmLabel')}</Text>
             <TextInput
               value={phraseConfirm}
               onChangeText={v => { setPhraseConfirm(v); setPhraseError(''); }}
-              placeholder="أعد كتابة الجملة..."
+              placeholder={t('onboarding.recovery.phrase.confirmPlaceholder')}
               placeholderTextColor={colors.mutedForeground}
               multiline
               autoCapitalize="sentences"
@@ -256,7 +243,7 @@ export default function RecoverySetupScreen() {
           >
             <Ionicons name="shield-checkmark-outline" size={18} color={phrase.trim().length >= 8 ? '#0A0A12' : colors.mutedForeground} />
             <Text style={[styles.saveBtnText, { color: phrase.trim().length >= 8 ? '#0A0A12' : colors.mutedForeground }]}>
-              احفظ وافتح الخزنة
+              {t('onboarding.recovery.phrase.save')}
             </Text>
           </Pressable>
         </ScrollView>
@@ -277,24 +264,24 @@ export default function RecoverySetupScreen() {
 
       <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 32 }]}>
         <Text style={[styles.qaNote, { color: colors.mutedForeground }]}>
-          اختر سؤالين وأجب عليهما. ستحتاج الإجابة الدقيقة عند الاسترجاع.
+          {t('onboarding.recovery.questions.note')}
         </Text>
 
         {/* Question 1 */}
         <View style={styles.qaBlock}>
-          <Text style={[styles.qaLabel, { color: colors.foreground }]}>السؤال الأول</Text>
+          <Text style={[styles.qaLabel, { color: colors.foreground }]}>{t('onboarding.recovery.questions.q1Label')}</Text>
           <Pressable
             onPress={() => { setShowQ1Picker(!showQ1Picker); setShowQ2Picker(false); }}
             style={[styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={1}>
-              {SECURITY_QUESTIONS[q1Idx]}
+              {QUESTIONS[q1Idx] ?? ''}
             </Text>
             <Ionicons name={showQ1Picker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
           </Pressable>
           {showQ1Picker && (
             <View style={[styles.qDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {SECURITY_QUESTIONS.map((q, i) => (
+              {QUESTIONS.map((q, i) => (
                 <Pressable
                   key={i}
                   onPress={() => { setQ1Idx(i); setShowQ1Picker(false); setA1(''); }}
@@ -308,7 +295,7 @@ export default function RecoverySetupScreen() {
           <TextInput
             value={a1}
             onChangeText={setA1}
-            placeholder="إجابتك..."
+            placeholder={t('onboarding.recovery.questions.answerPlaceholder')}
             placeholderTextColor={colors.mutedForeground}
             autoCapitalize="none"
             autoCorrect={false}
@@ -318,19 +305,19 @@ export default function RecoverySetupScreen() {
 
         {/* Question 2 */}
         <View style={styles.qaBlock}>
-          <Text style={[styles.qaLabel, { color: colors.foreground }]}>السؤال الثاني</Text>
+          <Text style={[styles.qaLabel, { color: colors.foreground }]}>{t('onboarding.recovery.questions.q2Label')}</Text>
           <Pressable
             onPress={() => { setShowQ2Picker(!showQ2Picker); setShowQ1Picker(false); }}
             style={[styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border }]}
           >
             <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={1}>
-              {SECURITY_QUESTIONS[q2Idx]}
+              {QUESTIONS[q2Idx] ?? ''}
             </Text>
             <Ionicons name={showQ2Picker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
           </Pressable>
           {showQ2Picker && (
             <View style={[styles.qDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {SECURITY_QUESTIONS.map((q, i) => (
+              {QUESTIONS.map((q, i) => (
                 <Pressable
                   key={i}
                   onPress={() => { setQ2Idx(i); setShowQ2Picker(false); setA2(''); }}
@@ -344,7 +331,7 @@ export default function RecoverySetupScreen() {
           <TextInput
             value={a2}
             onChangeText={setA2}
-            placeholder="إجابتك..."
+            placeholder={t('onboarding.recovery.questions.answerPlaceholder')}
             placeholderTextColor={colors.mutedForeground}
             autoCapitalize="none"
             autoCorrect={false}
@@ -365,7 +352,7 @@ export default function RecoverySetupScreen() {
           <Text style={[styles.saveBtnText, {
             color: (a1.trim().length >= 2 && a2.trim().length >= 2) ? '#fff' : colors.mutedForeground,
           }]}>
-            احفظ وافتح الخزنة
+            {t('onboarding.recovery.questions.save')}
           </Text>
         </Pressable>
       </ScrollView>

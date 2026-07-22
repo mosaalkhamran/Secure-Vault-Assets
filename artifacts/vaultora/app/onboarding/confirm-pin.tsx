@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 import PinPad from '@/components/PinPad';
@@ -10,6 +11,7 @@ import PinPad from '@/components/PinPad';
 export default function ConfirmPinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { pin } = useLocalSearchParams<{ pin: string }>();
   const { createPin } = useVault();
   const [error, setError] = useState(false);
@@ -44,9 +46,9 @@ export default function ConfirmPinScreen() {
           <View style={[styles.iconBg, { backgroundColor: 'rgba(76,175,135,0.15)' }]}>
             <Ionicons name="checkmark-circle-outline" size={32} color="#4CAF87" />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Confirm PIN</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('onboarding.confirmPin.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Enter your PIN one more time to confirm
+            {t('onboarding.confirmPin.subtitle')}
           </Text>
         </View>
 
@@ -54,7 +56,7 @@ export default function ConfirmPinScreen() {
           onComplete={handleConfirm}
           error={error}
           onErrorReset={() => setError(false)}
-          subtitle={error ? 'PINs do not match — try again' : undefined}
+          subtitle={error ? t('onboarding.confirmPin.error') : undefined}
         />
       </View>
     </View>

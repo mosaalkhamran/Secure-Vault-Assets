@@ -5,10 +5,10 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 import PinPad from '@/components/PinPad';
-import { SECURITY_QUESTIONS } from '@/app/onboarding/recovery';
 
 type Step =
   | 'options'
@@ -21,6 +21,8 @@ type Step =
 export default function ForgotPinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+  const QUESTIONS = t('onboarding.recovery.questions_list', { returnObjects: true }) as string[];
   const {
     createPin, unlock,
     settings, isFaceIdAvailable, authenticateWithFaceId,
@@ -49,14 +51,14 @@ export default function ForgotPinScreen() {
   const handleFaceId = async () => {
     const success = await authenticateWithFaceId();
     if (success) setStep('new-pin');
-    else Alert.alert('تعذّر التحقق', 'لم يتعرف Face ID على وجهك. حاول مرة أخرى أو استخدم طريقة أخرى.');
+    else Alert.alert(t('forgotPin.faceId.failedTitle'), t('forgotPin.faceId.failedMsg'));
   };
 
   // ── Recovery phrase ──────────────────────────────────────────────────────
   const handleVerifyPhrase = async () => {
     const ok = await verifyRecoveryPhrase(phraseInput);
     if (ok) setStep('new-pin');
-    else Alert.alert('جملة غير صحيحة', 'الجملة التي أدخلتها غير متطابقة. تأكد من الكتابة وحاول مجدداً.');
+    else Alert.alert(t('forgotPin.phrase.wrong'), t('forgotPin.phrase.wrongMsg'));
   };
 
   // ── Security questions ───────────────────────────────────────────────────
@@ -64,7 +66,7 @@ export default function ForgotPinScreen() {
     setQError('');
     const ok = await verifySecurityAnswers([a1.trim(), a2.trim()]);
     if (ok) setStep('new-pin');
-    else setQError('الإجابات غير صحيحة — تأكد من نفس الإجابات التي أدخلتها عند الإعداد');
+    else setQError(t('forgotPin.questions.error'));
   };
 
   // ── New PIN ──────────────────────────────────────────────────────────────
@@ -85,12 +87,12 @@ export default function ForgotPinScreen() {
   };
 
   const headerTitle: Record<Step, string> = {
-    options: 'نسيت الرقم السري',
-    'face-id': 'Face ID',
-    phrase: 'الجملة السرية',
-    questions: 'أسئلة الأمان',
-    'new-pin': 'رقم سري جديد',
-    'confirm-new-pin': 'تأكيد الرقم السري',
+    options: t('forgotPin.title'),
+    'face-id': t('forgotPin.faceId.label'),
+    phrase: t('forgotPin.phrase.label'),
+    questions: t('forgotPin.questions.label'),
+    'new-pin': t('forgotPin.newPin.subtitle'),
+    'confirm-new-pin': t('forgotPin.confirmPin.subtitle'),
   };
 
   return (
@@ -111,7 +113,7 @@ export default function ForgotPinScreen() {
             <View style={[styles.infoBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={20} color={colors.mutedForeground} />
               <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-                اختر إحدى طرق الاسترجاع المتاحة لإعادة تعيين رقمك السري.
+                {t('forgotPin.info')}
               </Text>
             </View>
 
@@ -120,8 +122,8 @@ export default function ForgotPinScreen() {
               {settings.faceIdEnabled && isFaceIdAvailable && (
                 <OptionCard
                   icon="scan-outline" iconColor="#5E9EFA"
-                  title="Face ID"
-                  desc="التحقق بوجهك لإعادة تعيين الرقم السري"
+                  title={t('forgotPin.faceId.label')}
+                  desc={t('forgotPin.faceId.desc')}
                   onPress={handleFaceId} colors={colors}
                 />
               )}
@@ -130,8 +132,8 @@ export default function ForgotPinScreen() {
               {hasRecoveryPhrase && (
                 <OptionCard
                   icon="chatbubble-ellipses-outline" iconColor="#C4975A"
-                  title="الجملة السرية"
-                  desc="أدخل الجملة التي حددتها عند الإعداد"
+                  title={t('forgotPin.phrase.label')}
+                  desc={t('forgotPin.phrase.desc')}
                   onPress={() => setStep('phrase')} colors={colors}
                 />
               )}
@@ -140,8 +142,8 @@ export default function ForgotPinScreen() {
               {hasSecurityQuestions && (
                 <OptionCard
                   icon="help-circle-outline" iconColor="#4CAF87"
-                  title="أسئلة الأمان"
-                  desc="أجب على السؤالين اللذين اخترتهما عند الإعداد"
+                  title={t('forgotPin.questions.label')}
+                  desc={t('forgotPin.questions.desc')}
                   onPress={() => setStep('questions')} colors={colors}
                 />
               )}
@@ -150,26 +152,26 @@ export default function ForgotPinScreen() {
               <View style={[styles.icloudCard, { backgroundColor: 'rgba(94,158,250,0.07)', borderColor: 'rgba(94,158,250,0.2)' }]}>
                 <Ionicons name="cloud-outline" size={20} color="#5E9EFA" style={{ marginTop: 2 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.icloudTitle, { color: '#5E9EFA' }]}>تغيير الجوال؟</Text>
+                  <Text style={[styles.icloudTitle, { color: '#5E9EFA' }]}>{t('forgotPin.icloud.label')}</Text>
                   <Text style={[styles.icloudDesc, { color: colors.mutedForeground }]}>
-                    إذا سجّلت نفس Apple ID على جهازك الجديد، تجد خزنتك جاهزة تلقائياً عبر iCloud Keychain.
+                    {t('forgotPin.icloud.desc')}
                   </Text>
                 </View>
               </View>
 
               {/* Wipe — last resort */}
               <View style={[styles.dangerZone, { borderColor: 'rgba(224,85,85,0.3)' }]}>
-                <Text style={[styles.dangerLabel, { color: colors.destructive }]}>الملاذ الأخير</Text>
+                <Text style={[styles.dangerLabel, { color: colors.destructive }]}>{t('forgotPin.wipe.zone')}</Text>
                 <OptionCard
                   icon="trash-outline" iconColor={colors.destructive}
-                  title="مسح الخزنة والبدء من جديد"
-                  desc="سيُحذف كل شيء نهائياً — لا يمكن التراجع"
+                  title={t('forgotPin.wipe.label')}
+                  desc={t('forgotPin.wipe.desc')}
                   onPress={() => Alert.alert(
-                    'مسح الخزنة',
-                    'سيتم حذف جميع صورك وفيديوهاتك بشكل نهائي لا يمكن التراجع عنه. هل أنت متأكد؟',
+                    t('forgotPin.wipe.confirmTitle'),
+                    t('forgotPin.wipe.confirmMsg'),
                     [
-                      { text: 'إلغاء', style: 'cancel' },
-                      { text: 'احذف كل شيء', style: 'destructive', onPress: () => router.replace('/onboarding') },
+                      { text: t('common.cancel'), style: 'cancel' },
+                      { text: t('forgotPin.wipe.deleteAll'), style: 'destructive', onPress: () => router.replace('/onboarding') },
                     ]
                   )}
                   colors={colors} danger
@@ -183,12 +185,12 @@ export default function ForgotPinScreen() {
         {step === 'phrase' && (
           <View style={styles.recoverySection}>
             <Text style={[styles.sectionNote, { color: colors.mutedForeground }]}>
-              أدخل نفس الجملة التي كتبتها عند إعداد الخزنة. غير حساسة لحالة الأحرف.
+              {t('forgotPin.phrase.note')}
             </Text>
             <TextInput
               value={phraseInput}
               onChangeText={setPhraseInput}
-              placeholder="جملتك السرية..."
+              placeholder={t('forgotPin.phrase.placeholder')}
               placeholderTextColor={colors.mutedForeground}
               multiline
               autoCapitalize="sentences"
@@ -205,7 +207,7 @@ export default function ForgotPinScreen() {
             >
               <Text style={[styles.actionBtnText, {
                 color: phraseInput.trim().length >= 4 ? '#0A0A12' : colors.mutedForeground,
-              }]}>تحقق من الجملة</Text>
+              }]}>{t('forgotPin.phrase.verify')}</Text>
             </Pressable>
           </View>
         )}
@@ -214,24 +216,24 @@ export default function ForgotPinScreen() {
         {step === 'questions' && (
           <View style={styles.recoverySection}>
             <Text style={[styles.sectionNote, { color: colors.mutedForeground }]}>
-              اختر نفس السؤالين اللذين أجبت عليهما عند الإعداد، وأدخل نفس الإجابات.
+              {t('forgotPin.questions.note')}
             </Text>
 
             {/* Q1 */}
             <View style={styles.qaBlock}>
-              <Text style={[styles.qaLabel, { color: colors.foreground }]}>السؤال الأول</Text>
+              <Text style={[styles.qaLabel, { color: colors.foreground }]}>{t('onboarding.recovery.questions.q1Label')}</Text>
               <Pressable
                 onPress={() => { setShowQ1Picker(!showQ1Picker); setShowQ2Picker(false); }}
                 style={[styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
                 <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={1}>
-                  {SECURITY_QUESTIONS[q1Idx]}
+                  {QUESTIONS[q1Idx] ?? ''}
                 </Text>
                 <Ionicons name={showQ1Picker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
               </Pressable>
               {showQ1Picker && (
                 <View style={[styles.qDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  {SECURITY_QUESTIONS.map((q, i) => (
+                  {QUESTIONS.map((q, i) => (
                     <Pressable key={i} onPress={() => { setQ1Idx(i); setShowQ1Picker(false); setA1(''); }}
                       style={[styles.qOption, i === q1Idx && { backgroundColor: 'rgba(196,151,90,0.12)' }]}>
                       <Text style={[styles.qOptionText, { color: i === q1Idx ? '#C4975A' : colors.foreground }]}>{q}</Text>
@@ -240,7 +242,7 @@ export default function ForgotPinScreen() {
                 </View>
               )}
               <TextInput value={a1} onChangeText={v => { setA1(v); setQError(''); }}
-                placeholder="إجابتك..." placeholderTextColor={colors.mutedForeground}
+                placeholder={t('onboarding.recovery.questions.answerPlaceholder')} placeholderTextColor={colors.mutedForeground}
                 autoCapitalize="none" autoCorrect={false}
                 style={[styles.answerInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.input }]}
               />
@@ -248,19 +250,19 @@ export default function ForgotPinScreen() {
 
             {/* Q2 */}
             <View style={styles.qaBlock}>
-              <Text style={[styles.qaLabel, { color: colors.foreground }]}>السؤال الثاني</Text>
+              <Text style={[styles.qaLabel, { color: colors.foreground }]}>{t('onboarding.recovery.questions.q2Label')}</Text>
               <Pressable
                 onPress={() => { setShowQ2Picker(!showQ2Picker); setShowQ1Picker(false); }}
                 style={[styles.qPicker, { backgroundColor: colors.card, borderColor: colors.border }]}
               >
                 <Text style={[styles.qPickerText, { color: colors.foreground }]} numberOfLines={1}>
-                  {SECURITY_QUESTIONS[q2Idx]}
+                  {QUESTIONS[q2Idx] ?? ''}
                 </Text>
                 <Ionicons name={showQ2Picker ? 'chevron-up' : 'chevron-down'} size={16} color={colors.mutedForeground} />
               </Pressable>
               {showQ2Picker && (
                 <View style={[styles.qDropdown, { backgroundColor: colors.card, borderColor: colors.border }]}>
-                  {SECURITY_QUESTIONS.map((q, i) => (
+                  {QUESTIONS.map((q, i) => (
                     <Pressable key={i} onPress={() => { setQ2Idx(i); setShowQ2Picker(false); setA2(''); }}
                       style={[styles.qOption, i === q2Idx && { backgroundColor: 'rgba(196,151,90,0.12)' }]}>
                       <Text style={[styles.qOptionText, { color: i === q2Idx ? '#C4975A' : colors.foreground }]}>{q}</Text>
@@ -269,7 +271,7 @@ export default function ForgotPinScreen() {
                 </View>
               )}
               <TextInput value={a2} onChangeText={v => { setA2(v); setQError(''); }}
-                placeholder="إجابتك..." placeholderTextColor={colors.mutedForeground}
+                placeholder={t('onboarding.recovery.questions.answerPlaceholder')} placeholderTextColor={colors.mutedForeground}
                 autoCapitalize="none" autoCorrect={false}
                 style={[styles.answerInput, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.input }]}
               />
@@ -286,7 +288,7 @@ export default function ForgotPinScreen() {
             >
               <Text style={[styles.actionBtnText, {
                 color: (a1.trim().length >= 2 && a2.trim().length >= 2) ? '#fff' : colors.mutedForeground,
-              }]}>تحقق من الإجابات</Text>
+              }]}>{t('forgotPin.questions.verify')}</Text>
             </Pressable>
           </View>
         )}
@@ -294,7 +296,7 @@ export default function ForgotPinScreen() {
         {/* ──────── NEW PIN ──────── */}
         {step === 'new-pin' && (
           <View style={styles.pinSection}>
-            <PinPad onComplete={handleNewPin} subtitle="أنشئ رقماً سرياً جديداً" />
+            <PinPad onComplete={handleNewPin} subtitle={t('forgotPin.newPin.subtitle')} />
           </View>
         )}
 
@@ -305,7 +307,7 @@ export default function ForgotPinScreen() {
               onComplete={handleConfirmPin}
               error={pinError}
               onErrorReset={() => setPinError(false)}
-              subtitle="أكد رقمك السري الجديد"
+              subtitle={t('forgotPin.confirmPin.subtitle')}
             />
           </View>
         )}

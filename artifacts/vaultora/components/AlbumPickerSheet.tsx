@@ -6,6 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, Album } from '@/contexts/VaultContext';
 
@@ -17,11 +18,13 @@ interface AlbumPickerSheetProps {
 }
 
 export default function AlbumPickerSheet({
-  visible, onClose, onSelect, title = 'Add to Album',
+  visible, onClose, onSelect, title,
 }: AlbumPickerSheetProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { albums, createAlbum } = useVault();
+  const displayTitle = title ?? t('albumPicker.title');
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -48,10 +51,10 @@ export default function AlbumPickerSheet({
         <View style={[styles.sheet, { backgroundColor: colors.card, paddingBottom: insets.bottom + 16 }]}>
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
           <View style={styles.headerRow}>
-            <Text style={[styles.title, { color: colors.foreground }]}>{title}</Text>
+            <Text style={[styles.title, { color: colors.foreground }]}>{displayTitle}</Text>
             <Pressable onPress={() => setShowCreate(s => !s)} style={[styles.newBtn, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
               <Ionicons name={showCreate ? 'close' : 'add'} size={18} color="#C4975A" />
-              <Text style={[styles.newBtnText, { color: '#C4975A' }]}>{showCreate ? 'Cancel' : 'New'}</Text>
+              <Text style={[styles.newBtnText, { color: '#C4975A' }]}>{showCreate ? t('common.cancel') : t('albumPicker.new')}</Text>
             </Pressable>
           </View>
 
@@ -60,7 +63,7 @@ export default function AlbumPickerSheet({
               <TextInput
                 value={newName}
                 onChangeText={setNewName}
-                placeholder="Album name"
+                placeholder={t('albumPicker.namePlaceholder')}
                 placeholderTextColor={colors.mutedForeground}
                 style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.input }]}
                 autoFocus
@@ -81,7 +84,7 @@ export default function AlbumPickerSheet({
             <View style={styles.empty}>
               <Ionicons name="folder-open-outline" size={32} color={colors.mutedForeground} />
               <Text style={[styles.emptyText, { color: colors.mutedForeground }]}>
-                No albums yet. Tap "New" to create one.
+                {t('albumPicker.empty')}
               </Text>
             </View>
           ) : (
@@ -104,7 +107,7 @@ export default function AlbumPickerSheet({
                       {item.name}
                     </Text>
                     <Text style={[styles.albumCount, { color: colors.mutedForeground }]}>
-                      {item.itemIds.length} {item.itemIds.length === 1 ? 'item' : 'items'}
+                      {t('albumPicker.items', { count: item.itemIds.length })}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={colors.mutedForeground} />

@@ -7,12 +7,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, VaultItem } from '@/contexts/VaultContext';
 
 export default function TrashScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { trashedItems, restoreFromTrash, permanentDelete, emptyTrash, settings } = useVault();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const isSelecting = selectedIds.size > 0;
@@ -45,11 +47,11 @@ export default function TrashScreen() {
 
   const handleEmptyTrash = () => {
     Alert.alert(
-      'Empty Trash',
-      `Permanently delete all ${trashedItems.length} item${trashedItems.length !== 1 ? 's' : ''}? This cannot be undone.`,
+      t('trash.confirmEmptyTitle'),
+      t('trash.confirmEmptyMsg', { count: trashedItems.length }),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete All', style: 'destructive', onPress: () => emptyTrash() },
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('trash.deleteAll'), style: 'destructive', onPress: () => emptyTrash() },
       ]
     );
   };
@@ -61,12 +63,12 @@ export default function TrashScreen() {
 
   const handleDeleteSelected = () => {
     Alert.alert(
-      'Delete Permanently',
-      `Delete ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''} forever? This cannot be undone.`,
+      t('trash.confirmDeleteTitle'),
+      t('trash.confirmDeleteMsg', { count: selectedIds.size }),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Delete',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             for (const id of selectedIds) await permanentDelete(id);
@@ -84,16 +86,16 @@ export default function TrashScreen() {
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </Pressable>
         <Text style={[styles.title, { color: colors.foreground }]}>
-          {isSelecting ? `${selectedIds.size} selected` : 'Deleted Items'}
+          {isSelecting ? t('trash.selected', { count: selectedIds.size }) : t('trash.title')}
         </Text>
         {isSelecting ? (
           <Pressable onPress={() => setSelectedIds(new Set())} style={styles.headerBtn}>
-            <Text style={[styles.doneText, { color: colors.primary }]}>Done</Text>
+            <Text style={[styles.doneText, { color: colors.primary }]}>{t('trash.done')}</Text>
           </Pressable>
         ) : (
           <Pressable onPress={handleEmptyTrash} style={styles.headerBtn} disabled={trashedItems.length === 0}>
             <Text style={[styles.emptyText, { color: trashedItems.length > 0 ? colors.destructive : colors.mutedForeground }]}>
-              Empty
+              {t('trash.emptyTrash')}
             </Text>
           </Pressable>
         )}
@@ -103,7 +105,7 @@ export default function TrashScreen() {
         <View style={[styles.infoBar, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="information-circle-outline" size={16} color={colors.mutedForeground} />
           <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-            Items are deleted after {settings.trashRetentionDays} days
+            {t('trash.retentionNote', { days: settings.trashRetentionDays })}
           </Text>
         </View>
       )}
@@ -153,9 +155,9 @@ export default function TrashScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="trash-outline" size={48} color={colors.mutedForeground} />
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>Trash is empty</Text>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{t('trash.empty')}</Text>
             <Text style={[styles.emptyHint, { color: colors.mutedForeground }]}>
-              Deleted items appear here for {settings.trashRetentionDays} days
+              {t('trash.emptyDesc', { days: settings.trashRetentionDays })}
             </Text>
           </View>
         }
@@ -165,11 +167,11 @@ export default function TrashScreen() {
         <View style={[styles.selectionBar, { backgroundColor: colors.card, paddingBottom: insets.bottom + 8 }]}>
           <TouchableOpacity onPress={handleRestoreSelected} style={styles.selBtn}>
             <Ionicons name="arrow-undo-outline" size={22} color={colors.primary} />
-            <Text style={[styles.selBtnText, { color: colors.primary }]}>Restore</Text>
+            <Text style={[styles.selBtnText, { color: colors.primary }]}>{t('trash.restore')}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={handleDeleteSelected} style={styles.selBtn}>
             <Ionicons name="trash-outline" size={22} color={colors.destructive} />
-            <Text style={[styles.selBtnText, { color: colors.destructive }]}>Delete</Text>
+            <Text style={[styles.selBtnText, { color: colors.destructive }]}>{t('trash.delete')}</Text>
           </TouchableOpacity>
         </View>
       )}

@@ -5,6 +5,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import PinPad from '@/components/PinPad';
 import StrengthMeter from '@/components/StrengthMeter';
@@ -14,6 +15,7 @@ type PinMode = 'numeric' | 'alphanumeric';
 export default function CreatePinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [mode, setMode] = useState<PinMode>('numeric');
   const [alphaPin, setAlphaPin] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -47,11 +49,9 @@ export default function CreatePinScreen() {
           <View style={[styles.iconBg, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
             <Ionicons name="keypad-outline" size={32} color="#C4975A" />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>PIN Backup</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('onboarding.createPin.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            {mode === 'numeric'
-              ? 'Used as a fallback when Face ID is unavailable'
-              : 'Choose a strong password as your fallback (min. 6 characters)'}
+            {mode === 'numeric' ? t('onboarding.createPin.subtitle') : t('onboarding.createPin.hint')}
           </Text>
         </View>
 
@@ -64,7 +64,7 @@ export default function CreatePinScreen() {
               style={[styles.modeBtn, mode === m && { backgroundColor: colors.card }]}
             >
               <Text style={[styles.modeBtnText, { color: mode === m ? colors.primary : colors.mutedForeground }]}>
-                {m === 'numeric' ? '6-Digit PIN' : 'Password'}
+                {m === 'numeric' ? t('onboarding.createPin.sixDigit') : t('onboarding.createPin.password')}
               </Text>
             </Pressable>
           ))}
@@ -78,7 +78,7 @@ export default function CreatePinScreen() {
               <TextInput
                 value={alphaPin}
                 onChangeText={setAlphaPin}
-                placeholder="Enter password"
+                placeholder={t('onboarding.createPin.placeholder')}
                 placeholderTextColor={colors.mutedForeground}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
@@ -98,7 +98,7 @@ export default function CreatePinScreen() {
 
             {alphaPin.length > 0 && alphaPin.length < 6 && (
               <Text style={[styles.warning, { color: colors.destructive }]}>
-                Password must be at least 6 characters
+                {t('onboarding.createPin.minLength')}
               </Text>
             )}
 
@@ -112,7 +112,7 @@ export default function CreatePinScreen() {
               <Text style={[styles.continueBtnText, {
                 color: alphaPin.length >= 6 ? colors.primaryForeground : colors.mutedForeground,
               }]}>
-                Continue
+                {t('onboarding.createPin.continueBtn')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -122,7 +122,7 @@ export default function CreatePinScreen() {
         <View style={[styles.icloudNote, { backgroundColor: 'rgba(94,158,250,0.08)', borderColor: 'rgba(94,158,250,0.2)' }]}>
           <Ionicons name="cloud-outline" size={14} color="#5E9EFA" />
           <Text style={[styles.icloudText, { color: '#5E9EFA' }]}>
-            Your vault settings sync automatically via iCloud Keychain
+            {t('onboarding.createPin.iCloudNote')}
           </Text>
         </View>
       </View>

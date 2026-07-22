@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import type { SortOption, FilterOption } from '@/contexts/VaultContext';
 
@@ -16,27 +17,28 @@ interface SortFilterSheetProps {
   onViewModeChange: (v: 'grid' | 'list') => void;
 }
 
-const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
-  { value: 'addedDesc', label: 'Date Added (Newest)', icon: 'time-outline' },
-  { value: 'addedAsc', label: 'Date Added (Oldest)', icon: 'time-outline' },
-  { value: 'capturedDesc', label: 'Date Taken', icon: 'calendar-outline' },
-  { value: 'sizeDesc', label: 'Size (Largest)', icon: 'trending-down-outline' },
-  { value: 'sizeAsc', label: 'Size (Smallest)', icon: 'trending-up-outline' },
-  { value: 'nameAsc', label: 'Name (A → Z)', icon: 'text-outline' },
-];
-
-const FILTER_OPTIONS: { value: FilterOption; label: string; icon: string }[] = [
-  { value: 'all', label: 'All Items', icon: 'grid-outline' },
-  { value: 'photos', label: 'Photos Only', icon: 'image-outline' },
-  { value: 'videos', label: 'Videos Only', icon: 'videocam-outline' },
-  { value: 'favorites', label: 'Favorites', icon: 'heart-outline' },
-];
-
 export default function SortFilterSheet({
   visible, onClose, sort, filter, onSortChange, onFilterChange, viewMode, onViewModeChange,
 }: SortFilterSheetProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const SORT_OPTIONS: { value: SortOption; label: string; icon: string }[] = [
+    { value: 'addedDesc', label: t('sortFilter.newestFirst'), icon: 'time-outline' },
+    { value: 'addedAsc', label: t('sortFilter.oldestFirst'), icon: 'time-outline' },
+    { value: 'capturedDesc', label: t('sortFilter.dateTaken'), icon: 'calendar-outline' },
+    { value: 'sizeDesc', label: t('sortFilter.sizeLargest'), icon: 'trending-down-outline' },
+    { value: 'sizeAsc', label: t('sortFilter.sizeSmallest'), icon: 'trending-up-outline' },
+    { value: 'nameAsc', label: t('sortFilter.nameAZ'), icon: 'text-outline' },
+  ];
+
+  const FILTER_OPTIONS: { value: FilterOption; label: string; icon: string }[] = [
+    { value: 'all', label: t('sortFilter.all'), icon: 'grid-outline' },
+    { value: 'photos', label: t('sortFilter.photos'), icon: 'image-outline' },
+    { value: 'videos', label: t('sortFilter.videos'), icon: 'videocam-outline' },
+    { value: 'favorites', label: t('sortFilter.favorites'), icon: 'heart-outline' },
+  ];
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -45,7 +47,7 @@ export default function SortFilterSheet({
           {/* Handle */}
           <View style={[styles.handle, { backgroundColor: colors.border }]} />
 
-          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>VIEW</Text>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>{t('sortFilter.view').toUpperCase()}</Text>
           <View style={[styles.viewToggle, { backgroundColor: colors.accent }]}>
             {(['grid', 'list'] as const).map(v => (
               <Pressable
@@ -59,13 +61,13 @@ export default function SortFilterSheet({
                   color={viewMode === v ? colors.primary : colors.mutedForeground}
                 />
                 <Text style={[styles.viewBtnText, { color: viewMode === v ? colors.primary : colors.mutedForeground }]}>
-                  {v === 'grid' ? 'Grid' : 'List'}
+                  {v === 'grid' ? t('sortFilter.grid') : t('sortFilter.list')}
                 </Text>
               </Pressable>
             ))}
           </View>
 
-          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>FILTER</Text>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground }]}>{t('sortFilter.filter').toUpperCase()}</Text>
           {FILTER_OPTIONS.map(opt => (
             <Pressable
               key={opt.value}
@@ -80,7 +82,7 @@ export default function SortFilterSheet({
             </Pressable>
           ))}
 
-          <Text style={[styles.sectionTitle, { color: colors.mutedForeground, marginTop: 8 }]}>SORT BY</Text>
+          <Text style={[styles.sectionTitle, { color: colors.mutedForeground, marginTop: 8 }]}>{t('sortFilter.sort').toUpperCase()}</Text>
           {SORT_OPTIONS.map(opt => (
             <Pressable
               key={opt.value}

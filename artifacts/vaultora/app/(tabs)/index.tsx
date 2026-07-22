@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, VaultItem, SortOption, FilterOption } from '@/contexts/VaultContext';
 import SortFilterSheet from '@/components/SortFilterSheet';
@@ -22,6 +23,7 @@ const ITEM_SIZE = (SW - GAP * (COLS - 1)) / COLS;
 export default function LibraryScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { vaultItems, trashedItems, softDelete, toggleFavorite, lock, exportToPhotos, addItemsToAlbum } = useVault();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -103,8 +105,8 @@ export default function LibraryScreen() {
       if (ok) count++;
     }
     setSelectedIds(new Set());
-    if (count > 0) Alert.alert('Exported', `${count} item${count !== 1 ? 's' : ''} saved to Photos.`);
-    else Alert.alert('Export Failed', 'Could not export. Grant Photos access in Settings.');
+    if (count > 0) Alert.alert(t('vault.exported'), t('vault.exportedCount', { count }));
+    else Alert.alert(t('vault.exportFailed'), t('vault.exportFailedDesc'));
   }, [selectedIds, exportToPhotos]);
 
   const handleMoveToAlbum = useCallback(async (albumId: string) => {
@@ -193,13 +195,13 @@ export default function LibraryScreen() {
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.title, { color: colors.foreground }]}>
-            {isSelecting ? `${selectedIds.size} selected` : 'Library'}
+            {isSelecting ? t('vault.selected', { count: selectedIds.size }) : t('vault.title')}
           </Text>
           {!isSelecting && vaultItems.length > 0 && (
             <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-              {photoCount > 0 && `${photoCount} photos`}
+              {photoCount > 0 && `${photoCount} ${t('common.photos').toLowerCase()}`}
               {photoCount > 0 && videoCount > 0 && ' · '}
-              {videoCount > 0 && `${videoCount} videos`}
+              {videoCount > 0 && `${videoCount} ${t('common.videos').toLowerCase()}`}
             </Text>
           )}
         </View>
@@ -207,10 +209,10 @@ export default function LibraryScreen() {
           {isSelecting ? (
             <>
               <Pressable onPress={handleSelectAll} style={styles.hBtn}>
-                <Text style={[styles.hBtnText, { color: colors.primary }]}>All</Text>
+                <Text style={[styles.hBtnText, { color: colors.primary }]}>{t('common.all')}</Text>
               </Pressable>
               <Pressable onPress={() => setSelectedIds(new Set())} style={styles.hBtn}>
-                <Text style={[styles.hBtnText, { color: colors.primary }]}>Done</Text>
+                <Text style={[styles.hBtnText, { color: colors.primary }]}>{t('common.done')}</Text>
               </Pressable>
             </>
           ) : (
@@ -244,7 +246,7 @@ export default function LibraryScreen() {
           <TextInput
             value={searchQuery}
             onChangeText={setSearchQuery}
-            placeholder="Search vault..."
+            placeholder={t('vault.searchPlaceholder')}
             placeholderTextColor={colors.mutedForeground}
             style={[styles.searchInput, { color: colors.foreground }]}
             autoFocus
@@ -269,7 +271,7 @@ export default function LibraryScreen() {
               }]}
             >
               <Text style={[styles.pillText, { color: filter === f ? colors.primaryForeground : colors.mutedForeground }]}>
-                {f === 'all' ? 'All' : f === 'photos' ? 'Photos' : f === 'videos' ? 'Videos' : '♥ Favorites'}
+                {f === 'all' ? t('common.all') : f === 'photos' ? t('common.photos') : f === 'videos' ? t('common.videos') : t('vault.favorites')}
               </Text>
             </Pressable>
           ))}
@@ -303,10 +305,10 @@ export default function LibraryScreen() {
       {/* Multi-select toolbar */}
       {isSelecting && (
         <View style={[styles.selToolbar, { backgroundColor: colors.card, paddingBottom: insets.bottom + 8 }]}>
-          <ToolbarBtn icon="heart-outline" label="Favorite" onPress={handleFavoriteSelected} color={colors.primary} />
-          <ToolbarBtn icon="folder-open-outline" label="Album" onPress={() => setShowAlbumPicker(true)} color={colors.foreground} />
-          <ToolbarBtn icon="share-outline" label="Export" onPress={handleExportSelected} color={colors.foreground} />
-          <ToolbarBtn icon="trash-outline" label="Delete" onPress={handleDeleteSelected} color={colors.destructive} />
+          <ToolbarBtn icon="heart-outline" label={t('vault.actions.favorite')} onPress={handleFavoriteSelected} color={colors.primary} />
+          <ToolbarBtn icon="folder-open-outline" label={t('vault.actions.album')} onPress={() => setShowAlbumPicker(true)} color={colors.foreground} />
+          <ToolbarBtn icon="share-outline" label={t('vault.actions.export')} onPress={handleExportSelected} color={colors.foreground} />
+          <ToolbarBtn icon="trash-outline" label={t('vault.actions.delete')} onPress={handleDeleteSelected} color={colors.destructive} />
         </View>
       )}
 
@@ -326,7 +328,7 @@ export default function LibraryScreen() {
         visible={showAlbumPicker}
         onClose={() => setShowAlbumPicker(false)}
         onSelect={handleMoveToAlbum}
-        title={`Add ${selectedIds.size} item${selectedIds.size !== 1 ? 's' : ''} to Album`}
+        title={t('vault.actions.addToAlbum', { count: selectedIds.size })}
       />
     </View>
   );
@@ -342,6 +344,7 @@ function ToolbarBtn({ icon, label, onPress, color }: { icon: string; label: stri
 }
 
 function EmptyState({ onImport, colors, filter, search }: { onImport: () => void; colors: any; filter: FilterOption; search: string }) {
+  const { t } = useTranslation();
   const isEmpty = filter === 'all' && !search;
   return (
     <View style={styles.empty}>
@@ -349,17 +352,15 @@ function EmptyState({ onImport, colors, filter, search }: { onImport: () => void
         <Ionicons name={isEmpty ? 'images-outline' : 'search-outline'} size={40} color={colors.mutedForeground} />
       </View>
       <Text style={[styles.emptyTitle, { color: colors.foreground }]}>
-        {isEmpty ? 'Your vault is empty' : 'No results found'}
+        {isEmpty ? t('vault.empty') : t('vault.noResults')}
       </Text>
       <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-        {isEmpty
-          ? 'Import photos and videos to keep them private and encrypted'
-          : 'Try a different search term or filter'}
+        {isEmpty ? t('vault.emptyDesc') : t('vault.noResultsDesc')}
       </Text>
       {isEmpty && (
         <Pressable onPress={onImport} style={[styles.emptyBtn, { backgroundColor: colors.primary }]}>
           <Ionicons name="add" size={18} color={colors.primaryForeground} />
-          <Text style={[styles.emptyBtnText, { color: colors.primaryForeground }]}>Import Media</Text>
+          <Text style={[styles.emptyBtnText, { color: colors.primaryForeground }]}>{t('vault.importBtn')}</Text>
         </Pressable>
       )}
     </View>

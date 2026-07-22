@@ -7,12 +7,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, Album } from '@/contexts/VaultContext';
 
 export default function AlbumsScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { albums, vaultItems, createAlbum, renameAlbum, deleteAlbum } = useVault();
   const [showModal, setShowModal] = useState<'create' | 'rename' | null>(null);
   const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
@@ -42,35 +44,35 @@ export default function AlbumsScreen() {
 
   const handleLongPress = (album: Album) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    Alert.alert(album.name, 'What would you like to do?', [
+    Alert.alert(album.name, undefined, [
       {
-        text: 'Rename',
+        text: t('albums.rename'),
         onPress: () => { setSelectedAlbum(album); setNameInput(album.name); setShowModal('rename'); },
       },
       {
-        text: 'Delete (keep files)',
+        text: t('albums.deleteKeepFiles'),
         style: 'destructive',
-        onPress: () => Alert.alert('Delete Album?', `Files will remain in your vault.`, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => deleteAlbum(album.id, false) },
+        onPress: () => Alert.alert(t('albums.deleteConfirmTitle'), t('albums.deleteConfirmDesc'), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: () => deleteAlbum(album.id, false) },
         ]),
       },
       {
-        text: 'Delete with files',
+        text: t('albums.deleteWithFiles'),
         style: 'destructive',
-        onPress: () => Alert.alert('Delete Album and Files?', `${getItemCount(album)} files will be moved to trash.`, [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Delete', style: 'destructive', onPress: () => deleteAlbum(album.id, true) },
+        onPress: () => Alert.alert(t('albums.deleteWithFilesTitle'), t('albums.deleteWithFilesDesc', { count: getItemCount(album) }), [
+          { text: t('common.cancel'), style: 'cancel' },
+          { text: t('common.delete'), style: 'destructive', onPress: () => deleteAlbum(album.id, true) },
         ]),
       },
-      { text: 'Cancel', style: 'cancel' },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   };
 
   return (
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Text style={[styles.title, { color: colors.foreground }]}>Albums</Text>
+        <Text style={[styles.title, { color: colors.foreground }]}>{t('albums.title')}</Text>
         <Pressable
           onPress={() => { setNameInput(''); setShowModal('create'); }}
           style={[styles.addBtn, { backgroundColor: colors.primary }]}
@@ -111,7 +113,7 @@ export default function AlbumsScreen() {
                   {item.name}
                 </Text>
                 <Text style={[styles.cardCount, { color: colors.mutedForeground }]}>
-                  {count} {count === 1 ? 'item' : 'items'}
+                  {count} {count === 1 ? t('albums.item') : t('albums.items')}
                 </Text>
               </View>
             </Pressable>
@@ -122,16 +124,16 @@ export default function AlbumsScreen() {
             <View style={[styles.emptyIcon, { backgroundColor: colors.card }]}>
               <Ionicons name="folder-open-outline" size={40} color={colors.mutedForeground} />
             </View>
-            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>No Albums</Text>
+            <Text style={[styles.emptyTitle, { color: colors.foreground }]}>{t('albums.empty')}</Text>
             <Text style={[styles.emptyDesc, { color: colors.mutedForeground }]}>
-              Create albums to organize your vault
+              {t('albums.emptyDesc')}
             </Text>
             <Pressable
               onPress={() => { setNameInput(''); setShowModal('create'); }}
               style={[styles.emptyBtn, { backgroundColor: colors.primary }]}
             >
               <Ionicons name="add" size={18} color={colors.primaryForeground} />
-              <Text style={[styles.emptyBtnText, { color: colors.primaryForeground }]}>New Album</Text>
+              <Text style={[styles.emptyBtnText, { color: colors.primaryForeground }]}>{t('albums.newAlbum')}</Text>
             </Pressable>
           </View>
         }
@@ -142,12 +144,12 @@ export default function AlbumsScreen() {
         <Pressable style={styles.overlay} onPress={() => { setShowModal(null); setNameInput(''); }}>
           <Pressable style={[styles.modalCard, { backgroundColor: colors.card }]}>
             <Text style={[styles.modalTitle, { color: colors.foreground }]}>
-              {showModal === 'create' ? 'New Album' : 'Rename Album'}
+              {showModal === 'create' ? t('albums.newAlbum') : t('albums.renameTitle')}
             </Text>
             <TextInput
               value={nameInput}
               onChangeText={setNameInput}
-              placeholder="Album name"
+              placeholder={t('albums.namePlaceholder')}
               placeholderTextColor={colors.mutedForeground}
               style={[styles.input, { color: colors.foreground, borderColor: colors.border, backgroundColor: colors.input }]}
               autoFocus
@@ -156,14 +158,14 @@ export default function AlbumsScreen() {
             />
             <View style={styles.modalActions}>
               <Pressable onPress={() => { setShowModal(null); setNameInput(''); }} style={styles.modalBtn}>
-                <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>Cancel</Text>
+                <Text style={[styles.modalBtnText, { color: colors.mutedForeground }]}>{t('common.cancel')}</Text>
               </Pressable>
               <Pressable
                 onPress={showModal === 'create' ? handleCreate : handleRename}
                 style={[styles.modalBtn, styles.modalBtnPrimary, { backgroundColor: colors.primary }]}
               >
                 <Text style={[styles.modalBtnText, { color: colors.primaryForeground }]}>
-                  {showModal === 'create' ? 'Create' : 'Rename'}
+                  {showModal === 'create' ? t('albums.createBtn') : t('albums.rename')}
                 </Text>
               </Pressable>
             </View>

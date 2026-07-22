@@ -1,8 +1,9 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { I18nextProvider } from 'react-i18next';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold, useFonts,
@@ -12,6 +13,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { VaultProvider } from '@/contexts/VaultContext';
 import AppLockOverlay from '@/components/AppLockOverlay';
 import { useAutoLock } from '@/hooks/useAutoLock';
+import i18n, { initI18n } from '@/services/i18n';
 
 SplashScreen.preventAutoHideAsync();
 const queryClient = new QueryClient();
@@ -25,14 +27,20 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
     Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold,
   });
+  const [i18nReady, setI18nReady] = useState(false);
 
   useEffect(() => {
-    if (fontsLoaded || fontError) SplashScreen.hideAsync();
-  }, [fontsLoaded, fontError]);
+    initI18n().then(() => setI18nReady(true)).catch(() => setI18nReady(true));
+  }, []);
 
-  if (!fontsLoaded && !fontError) return null;
+  useEffect(() => {
+    if ((fontsLoaded || fontError) && i18nReady) SplashScreen.hideAsync();
+  }, [fontsLoaded, fontError, i18nReady]);
+
+  if ((!fontsLoaded && !fontError) || !i18nReady) return null;
 
   return (
+    <I18nextProvider i18n={i18n}>
     <SafeAreaProvider>
       <ErrorBoundary>
         <VaultProvider>
@@ -66,5 +74,6 @@ export default function RootLayout() {
         </VaultProvider>
       </ErrorBoundary>
     </SafeAreaProvider>
+    </I18nextProvider>
   );
 }

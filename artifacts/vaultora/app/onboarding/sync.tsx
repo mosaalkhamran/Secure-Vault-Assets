@@ -6,12 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 
 export default function SyncSetupScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { enableiCloudSync } = useVault();
   const [loading, setLoading] = useState(false);
 
@@ -21,9 +23,9 @@ export default function SyncSetupScreen() {
       const ok = await enableiCloudSync();
       if (!ok) {
         Alert.alert(
-          'iCloud غير متاح',
-          'تأكد من تسجيل الدخول بـ Apple ID وتفعيل iCloud في إعدادات جهازك، ثم حاول مجدداً.',
-          [{ text: 'حسناً', onPress: () => router.push('/onboarding/recovery') }]
+          t('onboarding.sync.unavailable'),
+          t('onboarding.sync.unavailableMsg'),
+          [{ text: t('common.ok'), onPress: () => router.push('/onboarding/recovery') }]
         );
         return;
       }
@@ -64,19 +66,19 @@ export default function SyncSetupScreen() {
           <View style={[styles.iconRing, { borderColor: 'rgba(94,158,250,0.4)', backgroundColor: 'rgba(94,158,250,0.12)' }]}>
             <Ionicons name="cloud-outline" size={44} color="#5E9EFA" />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>نسخ احتياطي في iCloud</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('onboarding.sync.title')}</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            احفظ خزنتك تلقائياً في iCloud الخاص بك — مجاناً، خاصاً، وبدون أي سيرفر خارجي.
+            {t('onboarding.sync.subtitle')}
           </Text>
         </View>
 
         {/* Benefits */}
         <View style={[styles.benefitsCard, { backgroundColor: colors.card, borderColor: 'rgba(94,158,250,0.25)' }]}>
           {[
-            { icon: 'shield-checkmark-outline', color: '#5E9EFA', text: 'بياناتك تبقى حتى لو حذفت التطبيق وأعدت تنزيله' },
-            { icon: 'phone-portrait-outline', color: '#4CAF87', text: 'تجد خزنتك جاهزة عند تغيير جوالك بنفس Apple ID' },
-            { icon: 'lock-closed-outline', color: '#C4975A', text: 'iCloud يشفّر بياناتك — لا أحد يراها حتى Apple' },
-            { icon: 'refresh-outline', color: '#9B59B6', text: 'المزامنة تلقائية في الخلفية — لا شيء يدوي' },
+            { icon: 'shield-checkmark-outline', color: '#5E9EFA', text: t('onboarding.sync.benefit1') },
+            { icon: 'phone-portrait-outline', color: '#4CAF87', text: t('onboarding.sync.benefit2') },
+            { icon: 'lock-closed-outline', color: '#C4975A', text: t('onboarding.sync.benefit3') },
+            { icon: 'refresh-outline', color: '#9B59B6', text: t('onboarding.sync.benefit4') },
           ].map((b, i) => (
             <View key={i} style={styles.benefit}>
               <View style={[styles.benefitIcon, { backgroundColor: `${b.color}20` }]}>
@@ -90,7 +92,7 @@ export default function SyncSetupScreen() {
         {/* Free badge */}
         <View style={[styles.freeBadge, { backgroundColor: 'rgba(76,175,135,0.12)', borderColor: 'rgba(76,175,135,0.3)' }]}>
           <Ionicons name="checkmark-circle" size={16} color="#4CAF87" />
-          <Text style={[styles.freeBadgeText, { color: '#4CAF87' }]}>مجاني تماماً — متاح لجميع المستخدمين</Text>
+          <Text style={[styles.freeBadgeText, { color: '#4CAF87' }]}>{t('onboarding.sync.free')}</Text>
         </View>
 
         {/* Actions */}
@@ -104,7 +106,7 @@ export default function SyncSetupScreen() {
               ? <ActivityIndicator color="#fff" />
               : <>
                   <Ionicons name="cloud-upload-outline" size={20} color="#fff" />
-                  <Text style={styles.enableBtnText}>تفعيل النسخ الاحتياطي</Text>
+                  <Text style={styles.enableBtnText}>{t('onboarding.sync.enable')}</Text>
                 </>
             }
           </Pressable>
@@ -114,12 +116,12 @@ export default function SyncSetupScreen() {
             disabled={loading}
             style={({ pressed }) => [styles.skipBtn, { borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
           >
-            <Text style={[styles.skipBtnText, { color: colors.mutedForeground }]}>لا شكراً، لاحقاً</Text>
+            <Text style={[styles.skipBtnText, { color: colors.mutedForeground }]}>{t('onboarding.sync.skip')}</Text>
           </Pressable>
         </View>
 
         <Text style={[styles.note, { color: colors.mutedForeground }]}>
-          يمكنك تغيير هذا الاختيار لاحقاً من الإعدادات
+          {t('onboarding.sync.note')}
         </Text>
       </View>
     </View>

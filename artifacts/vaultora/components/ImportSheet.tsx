@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Haptics from 'expo-haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault, VAULT_DIR } from '@/contexts/VaultContext';
 import { ensureDirectory } from '@/utils/filesystem';
@@ -33,6 +34,7 @@ interface SelectedAsset {
 export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { addItems, settings } = useVault();
 
   const [state, setState] = useState<ImportState>('selecting');
@@ -50,12 +52,12 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
 
   const handlePickMedia = async () => {
     if (Platform.OS === 'web') {
-      Alert.alert('Not available', 'Media import requires a real iOS device.');
+      Alert.alert(t('importSheet.notAvailable'), t('importSheet.notAvailableMsg'));
       return;
     }
     const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!perm.granted) {
-      Alert.alert('Permission Required', 'Allow photo library access in Settings to import media.');
+      Alert.alert(t('importSheet.permRequired'), t('importSheet.permRequiredMsg'));
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -154,18 +156,18 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
           {/* Confirming */}
           {state === 'confirming' && (
             <>
-              <Text style={[styles.title, { color: colors.foreground }]}>Import Media</Text>
+              <Text style={[styles.title, { color: colors.foreground }]}>{t('importSheet.title')}</Text>
               <View style={[styles.statsRow, { backgroundColor: colors.accent }]}>
                 <View style={styles.stat}>
                   <Text style={[styles.statNum, { color: colors.foreground }]}>{selected.length}</Text>
                   <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>
-                    {selected.length === 1 ? 'item' : 'items'}
+                    {selected.length === 1 ? t('common.item') : t('common.items')}
                   </Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.stat}>
                   <Text style={[styles.statNum, { color: colors.foreground }]}>{formatSize(totalSize)}</Text>
-                  <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>total size</Text>
+                  <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{t('importSheet.totalSize')}</Text>
                 </View>
                 <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
                 <View style={styles.stat}>
@@ -174,17 +176,15 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
                     {' '}
                     {selected.filter(a => a.type === 'video').length}V
                   </Text>
-                  <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>types</Text>
+                  <Text style={[styles.statLabel, { color: colors.mutedForeground }]}>{t('importSheet.types')}</Text>
                 </View>
               </View>
 
               <View style={[styles.keepRow, { borderColor: colors.border }]}>
                 <View style={styles.keepText}>
-                  <Text style={[styles.keepTitle, { color: colors.foreground }]}>Keep original in Photos</Text>
+                  <Text style={[styles.keepTitle, { color: colors.foreground }]}>{t('importSheet.keepOriginal')}</Text>
                   <Text style={[styles.keepDesc, { color: colors.mutedForeground }]}>
-                    {keepOriginal
-                      ? 'Original stays in your Photos app'
-                      : 'Original will be deleted after import completes'}
+                    {keepOriginal ? t('importSheet.keepOriginalOn') : t('importSheet.keepOriginalOff')}
                   </Text>
                 </View>
                 <Switch
@@ -199,7 +199,7 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
                 <View style={[styles.warningBox, { backgroundColor: 'rgba(224,85,85,0.1)', borderColor: 'rgba(224,85,85,0.3)' }]}>
                   <Ionicons name="warning-outline" size={16} color={colors.destructive} />
                   <Text style={[styles.warningText, { color: colors.destructive }]}>
-                    Original files will be deleted from Photos after successful import and verification. This cannot be undone.
+                    {t('importSheet.warning')}
                   </Text>
                 </View>
               )}
@@ -209,14 +209,14 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
                   onPress={handleClose}
                   style={[styles.cancelBtn, { borderColor: colors.border }]}
                 >
-                  <Text style={[styles.cancelText, { color: colors.foreground }]}>Cancel</Text>
+                  <Text style={[styles.cancelText, { color: colors.foreground }]}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={handleImport}
                   style={[styles.importBtn, { backgroundColor: colors.primary }]}
                 >
                   <Text style={[styles.importText, { color: colors.primaryForeground }]}>
-                    Import {selected.length} {selected.length === 1 ? 'item' : 'items'}
+                    {t('importSheet.importBtn', { count: selected.length })}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -227,9 +227,9 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
           {state === 'importing' && (
             <View style={styles.importingSection}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={[styles.importingTitle, { color: colors.foreground }]}>Importing...</Text>
+              <Text style={[styles.importingTitle, { color: colors.foreground }]}>{t('importSheet.importing')}</Text>
               <Text style={[styles.importingCount, { color: colors.mutedForeground }]}>
-                {doneCount} of {selected.length} items
+                {t('importSheet.progress', { done: doneCount, total: selected.length })}
               </Text>
               <View style={[styles.progressTrack, { backgroundColor: colors.border }]}>
                 <View style={[styles.progressFill, {
@@ -238,7 +238,7 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
                 }]} />
               </View>
               <Text style={[styles.importingHint, { color: colors.mutedForeground }]}>
-                Do not close the app
+                {t('importSheet.doNotClose')}
               </Text>
             </View>
           )}
@@ -250,18 +250,16 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
                 <Ionicons name="checkmark-circle" size={40} color="#4CAF87" />
               </View>
               <Text style={[styles.doneTitle, { color: colors.foreground }]}>
-                {doneCount} {doneCount === 1 ? 'item' : 'items'} secured
+                {t('importSheet.success', { count: doneCount })}
               </Text>
               <Text style={[styles.doneDesc, { color: colors.mutedForeground }]}>
-                {keepOriginal
-                  ? 'Originals remain in your Photos app'
-                  : 'Originals have been removed from Photos'}
+                {keepOriginal ? t('importSheet.successOriginalKept') : t('importSheet.successOriginalRemoved')}
               </Text>
               <TouchableOpacity
                 onPress={handleClose}
                 style={[styles.doneBtn, { backgroundColor: colors.primary }]}
               >
-                <Text style={[styles.doneBtnText, { color: colors.primaryForeground }]}>Done</Text>
+                <Text style={[styles.doneBtnText, { color: colors.primaryForeground }]}>{t('common.done')}</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -271,7 +269,7 @@ export default function ImportSheet({ visible, onClose }: ImportSheetProps) {
             <View style={styles.selectingSection}>
               <ActivityIndicator size="small" color={colors.primary} />
               <Text style={[styles.selectingText, { color: colors.mutedForeground }]}>
-                Opening photo library...
+                {t('importSheet.loading')}
               </Text>
             </View>
           )}
