@@ -4,21 +4,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
-
-const FEATURES = [
-  { icon: 'cloud-outline', title: 'iCloud Encrypted Backup', desc: 'Encrypted backup to your private iCloud. Restore after device reset or on a new iPhone.' },
-  { icon: 'refresh-outline', title: 'Automatic Backup', desc: 'Vault syncs automatically in the background. Resumes where it left off.' },
-  { icon: 'checkmark-circle-outline', title: 'Backup Verification', desc: 'Every file is verified after upload. Integrity checked on restore.' },
-  { icon: 'shield-half-outline', title: 'Privacy Cover', desc: 'Calculator, notes, clock — disguise Vaultora as another app.' },
-  { icon: 'apps-outline', title: 'Alternative Icons', desc: 'Change app icon to a calculator, folder, notebook, and more.' },
-  { icon: 'lock-closed-outline', title: 'Decoy Vault', desc: 'Secondary PIN opens a separate vault with different content.' },
-  { icon: 'eye-off-outline', title: 'Advanced Lock', desc: 'Instant lock on background, biometric enforcement, and more.' },
-];
 
 export default function SubscriptionScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
+
+  const FEATURES = [
+    { icon: 'cloud-outline',             title: t('subscription.features.backup'),     desc: t('subscription.features.backupDesc') },
+    { icon: 'refresh-outline',           title: t('subscription.features.autoBackup'), desc: t('subscription.features.autoBackupDesc') },
+    { icon: 'checkmark-circle-outline',  title: t('subscription.features.verify'),     desc: t('subscription.features.verifyDesc') },
+    { icon: 'shield-half-outline',       title: t('subscription.features.cover'),      desc: t('subscription.features.coverDesc') },
+    { icon: 'apps-outline',              title: t('subscription.features.icons'),      desc: t('subscription.features.iconsDesc') },
+    { icon: 'lock-closed-outline',       title: t('subscription.features.decoy'),      desc: t('subscription.features.decoyDesc') },
+    { icon: 'eye-off-outline',           title: t('subscription.features.lock'),       desc: t('subscription.features.lockDesc') },
+  ];
 
   return (
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
@@ -36,33 +38,32 @@ export default function SubscriptionScreen() {
       >
         {/* Header */}
         <View style={styles.headerSection}>
-          <LinearGradient
-            colors={['#C4975A', '#E8BE78']}
-            style={styles.premiumBadge}
-          >
-            <Text style={styles.premiumBadgeText}>PREMIUM</Text>
+          <LinearGradient colors={['#C4975A', '#E8BE78']} style={styles.premiumBadge}>
+            <Text style={styles.premiumBadgeText}>{t('subscription.badge')}</Text>
           </LinearGradient>
-          <Text style={[styles.title, { color: colors.foreground }]}>Vaultora Premium</Text>
-          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
-            Everything you need to keep your memories truly private
-          </Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>{t('subscription.title')}</Text>
+          <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>{t('subscription.subtitle')}</Text>
         </View>
 
         {/* Price */}
         <View style={[styles.priceCard, { backgroundColor: 'rgba(196,151,90,0.1)', borderColor: 'rgba(196,151,90,0.3)' }]}>
-          <Text style={[styles.priceAmount, { color: '#C4975A' }]}>$9</Text>
+          <Text style={[styles.priceAmount, { color: '#C4975A' }]}>{t('subscription.price')}</Text>
           <View>
-            <Text style={[styles.pricePer, { color: colors.foreground }]}>per month</Text>
-            <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>
-              Auto-renews · Cancel anytime
-            </Text>
+            <Text style={[styles.pricePer, { color: colors.foreground }]}>{t('subscription.perMonth')}</Text>
+            <Text style={[styles.priceNote, { color: colors.mutedForeground }]}>{t('subscription.billing')}</Text>
           </View>
         </View>
 
         {/* Features */}
         <View style={styles.featureList}>
           {FEATURES.map((f, i) => (
-            <View key={i} style={[styles.featureRow, { borderBottomColor: colors.border, borderBottomWidth: i < FEATURES.length - 1 ? StyleSheet.hairlineWidth : 0 }]}>
+            <View
+              key={i}
+              style={[
+                styles.featureRow,
+                { borderBottomColor: colors.border, borderBottomWidth: i < FEATURES.length - 1 ? StyleSheet.hairlineWidth : 0 },
+              ]}
+            >
               <View style={[styles.featureIcon, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
                 <Ionicons name={f.icon as any} size={20} color="#C4975A" />
               </View>
@@ -77,9 +78,7 @@ export default function SubscriptionScreen() {
         {/* Free tier reminder */}
         <View style={[styles.freeNote, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <Ionicons name="checkmark-circle-outline" size={18} color={colors.success} />
-          <Text style={[styles.freeNoteText, { color: colors.mutedForeground }]}>
-            All local features — import, view, albums, favorites — remain free forever. Your files are never locked or deleted if you cancel.
-          </Text>
+          <Text style={[styles.freeNoteText, { color: colors.mutedForeground }]}>{t('subscription.freeNote')}</Text>
         </View>
 
         {/* CTA */}
@@ -88,28 +87,26 @@ export default function SubscriptionScreen() {
             style={({ pressed }) => [styles.subscribeBtn, { backgroundColor: '#C4975A', opacity: pressed ? 0.85 : 1 }]}
             onPress={() => {
               // StoreKit purchase — requires Development Build
-              // In production: call StoreKit 2 purchase flow
               router.back();
             }}
           >
-            <Text style={styles.subscribeBtnText}>Subscribe · $9 / month</Text>
+            <Text style={styles.subscribeBtnText}>{t('subscription.subscribe')}</Text>
           </Pressable>
           <Pressable style={styles.restoreBtn} onPress={() => {}}>
-            <Text style={[styles.restoreBtnText, { color: colors.mutedForeground }]}>Restore Purchases</Text>
+            <Text style={[styles.restoreBtnText, { color: colors.mutedForeground }]}>{t('subscription.restore')}</Text>
           </Pressable>
         </View>
 
         {/* Legal */}
-        <Text style={[styles.legal, { color: colors.mutedForeground }]}>
-          Subscription auto-renews monthly at the price shown for your App Store region. Cancel anytime in Settings → Apple ID. Payment charged to your Apple ID account. Subscription to Vaultora Premium includes all listed premium features.
-        </Text>
+        <Text style={[styles.legal, { color: colors.mutedForeground }]}>{t('subscription.legal')}</Text>
+
         <View style={styles.legalLinks}>
-          <Pressable>
-            <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Privacy Policy</Text>
+          <Pressable onPress={() => router.push('/legal/privacy-policy' as any)}>
+            <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>{t('subscription.privacy')}</Text>
           </Pressable>
           <Text style={[styles.legalDot, { color: colors.mutedForeground }]}>·</Text>
-          <Pressable>
-            <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>Terms of Use</Text>
+          <Pressable onPress={() => router.push('/legal/terms' as any)}>
+            <Text style={[styles.legalLink, { color: colors.mutedForeground }]}>{t('subscription.terms')}</Text>
           </Pressable>
         </View>
       </ScrollView>

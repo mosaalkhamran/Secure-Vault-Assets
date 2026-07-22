@@ -99,7 +99,7 @@ export default function SettingsScreen() {
     if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (enabled) {
       const ok = await enableFaceId();
-      if (!ok) Alert.alert('Face ID', 'Could not enable Face ID. Please try again.');
+      if (!ok) Alert.alert('Face ID', t('settings.security.faceIdError'));
     } else {
       await disableFaceId();
     }

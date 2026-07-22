@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 import PinPad from '@/components/PinPad';
@@ -13,18 +14,25 @@ type Step = 'intro' | 'enter' | 'confirm';
 export default function SetupDecoyPinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const { setupDecoyPin, verifyPin } = useVault();
 
   const [step, setStep] = useState<Step>('intro');
   const [decoyPin, setDecoyPin] = useState('');
   const [error, setError] = useState(false);
 
+  const features = [
+    { icon: 'lock-closed-outline', title: t('decoyVault.f1Title'), desc: t('decoyVault.f1Desc') },
+    { icon: 'eye-off-outline',     title: t('decoyVault.f2Title'), desc: t('decoyVault.f2Desc') },
+    { icon: 'shield-checkmark-outline', title: t('decoyVault.f3Title'), desc: t('decoyVault.f3Desc') },
+    { icon: 'warning-outline',     title: t('decoyVault.f4Title'), desc: t('decoyVault.f4Desc') },
+  ];
+
   const handleFirstPin = async (pin: string) => {
-    // Make sure decoy PIN is different from real PIN
     const isSameAsReal = await verifyPin(pin);
     if (isSameAsReal) {
       setError(true);
-      Alert.alert('Invalid PIN', 'The decoy PIN cannot be the same as your real vault PIN.');
+      Alert.alert(t('decoyVault.invalidTitle'), t('decoyVault.invalidMsg'));
       return;
     }
     setDecoyPin(pin);
@@ -39,24 +47,33 @@ export default function SetupDecoyPinScreen() {
     }
     await setupDecoyPin(pin);
     Alert.alert(
-      'Decoy Vault Active',
-      'Your decoy PIN is set. Entering it on the lock screen will open an empty vault.',
-      [{ text: 'Done', onPress: () => router.back() }]
+      t('decoyVault.successTitle'),
+      t('decoyVault.successMsg'),
+      [{ text: t('common.done'), onPress: () => router.back() }]
     );
+  };
+
+  const handleBack = () => {
+    if (step === 'intro') router.back();
+    else if (step === 'confirm') setStep('enter');
+    else setStep('intro');
   };
 
   return (
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => step === 'intro' ? router.back() : setStep(step === 'confirm' ? 'enter' : 'intro')} style={styles.backBtn}>
+        <Pressable onPress={handleBack} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.foreground }]}>Decoy Vault</Text>
+        <Text style={[styles.headerTitle, { color: colors.foreground }]}>{t('decoyVault.title')}</Text>
         <View style={styles.backBtn} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 24 }]}
+        showsVerticalScrollIndicator={false}
+      >
         {step === 'intro' && (
           <View style={styles.introSection}>
             <LinearGradient colors={['rgba(155,89,182,0.2)', 'transparent']} style={styles.iconGlow}>
@@ -64,16 +81,20 @@ export default function SetupDecoyPinScreen() {
                 <Ionicons name="glasses-outline" size={40} color="#9B59B6" />
               </View>
             </LinearGradient>
-            <Text style={[styles.introTitle, { color: colors.foreground }]}>How Decoy Vault Works</Text>
+
+            <Text style={[styles.introTitle, { color: colors.foreground }]}>
+              {t('decoyVault.howItWorks')}
+            </Text>
 
             <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
-              {[
-                { icon: 'lock-closed-outline', title: 'Two PINs, Two Realities', desc: 'Your real PIN opens your actual vault with all your files. The decoy PIN opens a completely empty vault.' },
-                { icon: 'eye-off-outline', title: 'Plausible Deniability', desc: 'If someone forces you to unlock your vault, enter the decoy PIN. They will see an empty vault.' },
-                { icon: 'shield-checkmark-outline', title: 'Silent & Seamless', desc: 'The decoy vault looks and works exactly like the real one — no indication it is a decoy.' },
-                { icon: 'warning-outline', title: 'Important', desc: 'The decoy PIN must be different from your real PIN. Never share your real PIN. Your actual files remain safe.' },
-              ].map((item, i) => (
-                <View key={i} style={[styles.featureRow, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border }]}>
+              {features.map((item, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.featureRow,
+                    i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
+                  ]}
+                >
                   <View style={[styles.featureIcon, { backgroundColor: 'rgba(155,89,182,0.12)' }]}>
                     <Ionicons name={item.icon as any} size={18} color="#9B59B6" />
                   </View>
@@ -90,7 +111,7 @@ export default function SetupDecoyPinScreen() {
               style={({ pressed }) => [styles.ctaBtn, { backgroundColor: '#9B59B6', opacity: pressed ? 0.85 : 1 }]}
             >
               <Ionicons name="shield-checkmark-outline" size={18} color="#FFF" />
-              <Text style={styles.ctaBtnText}>Set Up Decoy PIN</Text>
+              <Text style={styles.ctaBtnText}>{t('decoyVault.setupBtn')}</Text>
             </Pressable>
           </View>
         )}
@@ -98,13 +119,13 @@ export default function SetupDecoyPinScreen() {
         {step === 'enter' && (
           <View style={styles.pinSection}>
             <Text style={[styles.pinHint, { color: colors.mutedForeground }]}>
-              Choose a PIN that is different from your real vault PIN
+              {t('decoyVault.enterHint')}
             </Text>
             <PinPad
               onComplete={handleFirstPin}
               error={error}
               onErrorReset={() => setError(false)}
-              subtitle="Create Decoy PIN"
+              subtitle={t('decoyVault.enterSubtitle')}
             />
           </View>
         )}
@@ -112,13 +133,13 @@ export default function SetupDecoyPinScreen() {
         {step === 'confirm' && (
           <View style={styles.pinSection}>
             <Text style={[styles.pinHint, { color: colors.mutedForeground }]}>
-              Enter the decoy PIN again to confirm
+              {t('decoyVault.confirmHint')}
             </Text>
             <PinPad
               onComplete={handleConfirmPin}
               error={error}
               onErrorReset={() => setError(false)}
-              subtitle="Confirm Decoy PIN"
+              subtitle={t('decoyVault.confirmSubtitle')}
             />
           </View>
         )}
