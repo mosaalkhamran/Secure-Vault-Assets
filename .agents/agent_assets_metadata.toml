@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "Wykh9jmC6qrCBkZq620mp"
+uri = "file://artifacts/vaultora/VAULTORA_REVIEW_REPORT.md"
+type = "text"
+title = "تقرير مراجعة Vaultora — شامل"
