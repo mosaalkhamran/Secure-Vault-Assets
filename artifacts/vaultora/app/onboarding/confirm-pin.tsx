@@ -11,7 +11,7 @@ export default function ConfirmPinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { pin } = useLocalSearchParams<{ pin: string }>();
-  const { createPin, completeSetup, unlock } = useVault();
+  const { createPin } = useVault();
   const [error, setError] = useState(false);
 
   const handleConfirm = async (confirmedPin: string) => {
@@ -20,9 +20,8 @@ export default function ConfirmPinScreen() {
       return;
     }
     await createPin(confirmedPin);
-    await completeSetup();
-    unlock();
-    router.replace('/');
+    // Go to recovery setup — completeSetup() is called there
+    router.push('/onboarding/recovery');
   };
 
   return (

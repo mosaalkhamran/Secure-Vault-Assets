@@ -68,15 +68,17 @@ const DEFAULT_SETTINGS: VaultSettings = {
 };
 
 const STORAGE_KEYS = {
-  SETUP_COMPLETE: 'vault_setup_complete',
-  PIN_HASH: 'vault_pin_hash',
-  RECOVERY_HASH: 'vault_recovery_hash',
-  DECOY_PIN_HASH: 'vault_decoy_pin_hash',
-  ALL_ITEMS: 'vault_all_items',
-  ALBUMS: 'vault_albums',
-  SETTINGS: 'vault_settings',
-  FAILED_ATTEMPTS: 'vault_failed_attempts',
-  LOCK_UNTIL: 'vault_lock_until',
+  SETUP_COMPLETE:         'vault_setup_complete',
+  PIN_HASH:               'vault_pin_hash',
+  RECOVERY_HASH:          'vault_recovery_hash',
+  RECOVERY_PHRASE_HASH:   'vault_recovery_phrase_hash',
+  SECURITY_ANSWERS_HASH:  'vault_security_answers_hash',
+  DECOY_PIN_HASH:         'vault_decoy_pin_hash',
+  ALL_ITEMS:              'vault_all_items',
+  ALBUMS:                 'vault_albums',
+  SETTINGS:               'vault_settings',
+  FAILED_ATTEMPTS:        'vault_failed_attempts',
+  LOCK_UNTIL:             'vault_lock_until',
 };
 
 export const VAULT_DIR = `${FileSystem.documentDirectory ?? ''}vault/media/`;
@@ -147,6 +149,8 @@ interface VaultContextType {
   isUnlocked: boolean;
   isDecoyMode: boolean;
   hasDecoyPin: boolean;
+  hasRecoveryPhrase: boolean;
+  hasSecurityQuestions: boolean;
   vaultItems: VaultItem[];
   trashedItems: VaultItem[];
   albums: Album[];
@@ -163,6 +167,12 @@ interface VaultContextType {
   authenticateWithFaceId: () => Promise<boolean>;
   storeRecoveryKey: (key: string) => Promise<void>;
   verifyRecoveryKey: (key: string) => Promise<boolean>;
+  // Recovery phrase (user-chosen memorable phrase)
+  setupRecoveryPhrase: (phrase: string) => Promise<void>;
+  verifyRecoveryPhrase: (phrase: string) => Promise<boolean>;
+  // Security questions (2 answers hashed together)
+  setupSecurityQuestions: (answers: [string, string]) => Promise<void>;
+  verifySecurityAnswers: (answers: [string, string]) => Promise<boolean>;
   recordFailedAttempt: () => Promise<{ locked: boolean; lockSeconds: number }>;
   resetFailedAttempts: () => Promise<void>;
   // Decoy vault
@@ -202,6 +212,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isDecoyMode, setIsDecoyMode] = useState(false);
   const [hasDecoyPin, setHasDecoyPin] = useState(false);
+  const [hasRecoveryPhrase, setHasRecoveryPhrase] = useState(false);
+  const [hasSecurityQuestions, setHasSecurityQuestions] = useState(false);
   const [allItems, setAllItems] = useState<VaultItem[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [settings, setSettings] = useState<VaultSettings>(DEFAULT_SETTINGS);
@@ -231,18 +243,22 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
 
   const initVault = async () => {
     try {
-      const [setupVal, settingsJson, attemptsStr, lockUntilStr, decoyHash] = await Promise.all([
+      const [setupVal, settingsJson, attemptsStr, lockUntilStr, decoyHash, phraseHash, secAnswersHash] = await Promise.all([
         AsyncStorage.getItem(STORAGE_KEYS.SETUP_COMPLETE),
         AsyncStorage.getItem(STORAGE_KEYS.SETTINGS),
         SecureStore.getItemAsync(STORAGE_KEYS.FAILED_ATTEMPTS).catch(() => null),
         SecureStore.getItemAsync(STORAGE_KEYS.LOCK_UNTIL).catch(() => null),
         SecureStore.getItemAsync(STORAGE_KEYS.DECOY_PIN_HASH).catch(() => null),
+        SecureStore.getItemAsync(STORAGE_KEYS.RECOVERY_PHRASE_HASH).catch(() => null),
+        SecureStore.getItemAsync(STORAGE_KEYS.SECURITY_ANSWERS_HASH).catch(() => null),
       ]);
       setIsSetupComplete(setupVal === 'true');
       if (settingsJson) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(settingsJson) });
       setFailedAttempts(attemptsStr ? parseInt(attemptsStr, 10) : 0);
       setLockUntil(lockUntilStr ? parseInt(lockUntilStr, 10) : 0);
       setHasDecoyPin(!!decoyHash);
+      setHasRecoveryPhrase(!!phraseHash);
+      setHasSecurityQuestions(!!secAnswersHash);
 
       if (Platform.OS !== 'web') {
         const [hasHW, isEnrolled] = await Promise.all([
@@ -338,6 +354,40 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     return stored === hash;
   };
 
+  // ─── Recovery phrase (user-chosen memorable phrase) ───────────────────────
+
+  const setupRecoveryPhrase = async (phrase: string) => {
+    const normalized = phrase.trim().toLowerCase();
+    const hash = await hashValue(`recovery_phrase_v1_${normalized}`);
+    await SecureStore.setItemAsync(STORAGE_KEYS.RECOVERY_PHRASE_HASH, hash);
+    setHasRecoveryPhrase(true);
+  };
+
+  const verifyRecoveryPhrase = async (phrase: string): Promise<boolean> => {
+    const stored = await SecureStore.getItemAsync(STORAGE_KEYS.RECOVERY_PHRASE_HASH).catch(() => null);
+    if (!stored) return false;
+    const normalized = phrase.trim().toLowerCase();
+    const hash = await hashValue(`recovery_phrase_v1_${normalized}`);
+    return stored === hash;
+  };
+
+  // ─── Security questions (2 answers combined + hashed) ─────────────────────
+
+  const setupSecurityQuestions = async (answers: [string, string]) => {
+    const combined = answers.map(a => a.trim().toLowerCase()).join('|||');
+    const hash = await hashValue(`security_qa_v1_${combined}`);
+    await SecureStore.setItemAsync(STORAGE_KEYS.SECURITY_ANSWERS_HASH, hash);
+    setHasSecurityQuestions(true);
+  };
+
+  const verifySecurityAnswers = async (answers: [string, string]): Promise<boolean> => {
+    const stored = await SecureStore.getItemAsync(STORAGE_KEYS.SECURITY_ANSWERS_HASH).catch(() => null);
+    if (!stored) return false;
+    const combined = answers.map(a => a.trim().toLowerCase()).join('|||');
+    const hash = await hashValue(`security_qa_v1_${combined}`);
+    return stored === hash;
+  };
+
   const recordFailedAttempt = async (): Promise<{ locked: boolean; lockSeconds: number }> => {
     const newCount = failedAttempts + 1;
     setFailedAttempts(newCount);
@@ -417,6 +467,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       AsyncStorage.removeItem(STORAGE_KEYS.SETTINGS),
       SecureStore.deleteItemAsync(STORAGE_KEYS.PIN_HASH).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.RECOVERY_HASH).catch(() => {}),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.RECOVERY_PHRASE_HASH).catch(() => {}),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.SECURITY_ANSWERS_HASH).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.DECOY_PIN_HASH).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.FAILED_ATTEMPTS).catch(() => {}),
       SecureStore.deleteItemAsync(STORAGE_KEYS.LOCK_UNTIL).catch(() => {}),
@@ -425,6 +477,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     setIsUnlocked(false);
     setIsDecoyMode(false);
     setHasDecoyPin(false);
+    setHasRecoveryPhrase(false);
+    setHasSecurityQuestions(false);
     setAllItems([]);
     setAlbums([]);
     setSettings(DEFAULT_SETTINGS);
@@ -582,11 +636,14 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   return (
     <VaultContext.Provider value={{
       isLoading, isSetupComplete, isUnlocked, isDecoyMode, hasDecoyPin,
+      hasRecoveryPhrase, hasSecurityQuestions,
       vaultItems, trashedItems, albums, settings,
       isFaceIdAvailable, failedAttempts, lockUntil,
       createPin, verifyPin, changePin,
       enableFaceId, disableFaceId, authenticateWithFaceId,
       storeRecoveryKey, verifyRecoveryKey,
+      setupRecoveryPhrase, verifyRecoveryPhrase,
+      setupSecurityQuestions, verifySecurityAnswers,
       recordFailedAttempt, resetFailedAttempts,
       setupDecoyPin, verifyDecoyPin, removeDecoyPin, enterDecoyMode,
       unlock, lock, completeSetup, resetVault,
