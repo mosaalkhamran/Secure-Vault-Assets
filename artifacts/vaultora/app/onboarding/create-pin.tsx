@@ -33,9 +33,10 @@ export default function CreatePinScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </Pressable>
+        {/* Step 2 of 3 */}
         <View style={styles.progress}>
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={[styles.dot, { backgroundColor: i === 1 ? colors.primary : colors.border }]} />
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.dot, { backgroundColor: i <= 2 ? colors.primary : colors.border }]} />
           ))}
         </View>
         <View style={styles.backBtn} />
@@ -46,11 +47,11 @@ export default function CreatePinScreen() {
           <View style={[styles.iconBg, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
             <Ionicons name="keypad-outline" size={32} color="#C4975A" />
           </View>
-          <Text style={[styles.title, { color: colors.foreground }]}>Create Your PIN</Text>
+          <Text style={[styles.title, { color: colors.foreground }]}>PIN Backup</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             {mode === 'numeric'
-              ? 'Choose a 6-digit PIN to secure your vault'
-              : 'Choose a strong alphanumeric password (min. 6 characters)'}
+              ? 'Used as a fallback when Face ID is unavailable'
+              : 'Choose a strong password as your fallback (min. 6 characters)'}
           </Text>
         </View>
 
@@ -117,9 +118,13 @@ export default function CreatePinScreen() {
           </View>
         )}
 
-        <Text style={[styles.hint, { color: colors.mutedForeground }]}>
-          You can recover access via Face ID or your recovery key if you forget.
-        </Text>
+        {/* iCloud note */}
+        <View style={[styles.icloudNote, { backgroundColor: 'rgba(94,158,250,0.08)', borderColor: 'rgba(94,158,250,0.2)' }]}>
+          <Ionicons name="cloud-outline" size={14} color="#5E9EFA" />
+          <Text style={[styles.icloudText, { color: '#5E9EFA' }]}>
+            Your vault settings sync automatically via iCloud Keychain
+          </Text>
+        </View>
       </View>
     </View>
   );
@@ -135,7 +140,7 @@ const styles = StyleSheet.create({
   titleSection: { alignItems: 'center', gap: 12 },
   iconBg: { width: 72, height: 72, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   title: { fontSize: 26, fontFamily: 'Inter_700Bold', textAlign: 'center' },
-  subtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center' },
+  subtitle: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 22 },
   modeToggle: { flexDirection: 'row', borderRadius: 12, padding: 4 },
   modeBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
   modeBtnText: { fontSize: 14, fontFamily: 'Inter_500Medium' },
@@ -146,5 +151,6 @@ const styles = StyleSheet.create({
   warning: { fontSize: 13, fontFamily: 'Inter_400Regular' },
   continueBtn: { height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
   continueBtnText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
-  hint: { fontSize: 12, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 18 },
+  icloudNote: { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12, borderRadius: 12, borderWidth: 1 },
+  icloudText: { flex: 1, fontSize: 12, fontFamily: 'Inter_400Regular', lineHeight: 18 },
 });

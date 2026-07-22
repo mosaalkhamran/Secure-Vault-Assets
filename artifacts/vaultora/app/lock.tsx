@@ -151,7 +151,8 @@ export default function LockScreen() {
       )}
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
-        <Pressable onPress={() => router.push('/forgot-pin')}>
+        <Pressable onPress={() => router.push('/forgot-pin')} style={styles.forgotBtn}>
+          <Ionicons name="help-circle-outline" size={15} color={colors.mutedForeground} />
           <Text style={[styles.forgotText, { color: colors.mutedForeground }]}>Forgot PIN?</Text>
         </Pressable>
       </View>
@@ -173,5 +174,6 @@ const styles = StyleSheet.create({
   lockedOutTimer: { fontSize: 40, fontFamily: 'Inter_700Bold', letterSpacing: -1 },
   lockedOutHint: { fontSize: 13, fontFamily: 'Inter_400Regular' },
   footer: { alignItems: 'center', paddingTop: 16 },
+  forgotBtn: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   forgotText: { fontSize: 14, fontFamily: 'Inter_400Regular' },
 });

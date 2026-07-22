@@ -16,24 +16,25 @@ export default function FaceIdScreen() {
   const handleEnable = async () => {
     const ok = await enableFaceId();
     setStatus(ok ? 'success' : 'denied');
-    if (ok) setTimeout(() => router.push('/onboarding/recovery-key'), 800);
+    if (ok) setTimeout(() => router.push('/onboarding/create-pin'), 800);
   };
 
-  const handleSkip = () => router.push('/onboarding/recovery-key');
+  const handleSkip = () => router.push('/onboarding/create-pin');
 
   return (
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
       <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
+        {/* Step 1 of 3 */}
         <View style={styles.progress}>
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={[styles.dot, { backgroundColor: i <= 2 ? colors.primary : colors.border }]} />
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.dot, { backgroundColor: i === 1 ? colors.primary : colors.border }]} />
           ))}
         </View>
       </View>
 
       <View style={[styles.content, { paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.titleSection}>
-          <LinearGradient colors={['rgba(196,151,90,0.2)', 'transparent']} style={styles.iconGlow}>
+          <LinearGradient colors={['rgba(94,158,250,0.2)', 'transparent']} style={styles.iconGlow}>
             <View style={[styles.iconBg, { backgroundColor: 'rgba(94,158,250,0.15)' }]}>
               <Ionicons
                 name={status === 'success' ? 'checkmark-circle-outline' : 'scan-outline'}
@@ -43,21 +44,21 @@ export default function FaceIdScreen() {
             </View>
           </LinearGradient>
           <Text style={[styles.title, { color: colors.foreground }]}>
-            {isFaceIdAvailable ? 'Enable Face ID' : 'Biometric Login'}
+            {isFaceIdAvailable ? 'Enable Face ID' : 'Quick Setup'}
           </Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
             {isFaceIdAvailable
-              ? 'Unlock your vault instantly without entering your PIN every time'
-              : 'Face ID is not available on this device. You can enable it later in Settings if you enroll biometrics.'}
+              ? 'Unlock instantly with your face — no PIN needed every time'
+              : 'Face ID is not available on this device. You can set it up in Settings after enrolling biometrics.'}
           </Text>
         </View>
 
         {isFaceIdAvailable && (
           <View style={[styles.featureCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
             {[
-              { icon: 'flash-outline', label: 'Instant unlock — no PIN required' },
-              { icon: 'shield-checkmark-outline', label: 'Your Face ID data stays on device' },
-              { icon: 'key-outline', label: 'PIN always available as fallback' },
+              { icon: 'flash-outline',           label: 'Instant unlock — just look at your phone' },
+              { icon: 'shield-checkmark-outline', label: 'Face data stays on your device, always' },
+              { icon: 'cloud-outline',            label: 'Vault settings sync via iCloud Keychain' },
             ].map((f, i) => (
               <View key={i} style={styles.featureRow}>
                 <Ionicons name={f.icon as any} size={18} color={colors.primary} />
@@ -71,7 +72,7 @@ export default function FaceIdScreen() {
           <View style={[styles.warningBox, { backgroundColor: 'rgba(224,85,85,0.1)', borderColor: 'rgba(224,85,85,0.3)' }]}>
             <Ionicons name="warning-outline" size={16} color={colors.destructive} />
             <Text style={[styles.warningText, { color: colors.destructive }]}>
-              Face ID access was denied. Enable it in iOS Settings → Privacy → Face ID & Passcode → Vaultora.
+              Face ID access was denied. You can enable it later in Settings → Privacy → Face ID & Passcode → Vaultora.
             </Text>
           </View>
         )}
@@ -79,7 +80,7 @@ export default function FaceIdScreen() {
         {status === 'success' && (
           <View style={[styles.successBox, { backgroundColor: 'rgba(76,175,135,0.1)', borderColor: 'rgba(76,175,135,0.3)' }]}>
             <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF87" />
-            <Text style={[styles.successText, { color: '#4CAF87' }]}>Face ID enabled successfully!</Text>
+            <Text style={[styles.successText, { color: '#4CAF87' }]}>Face ID enabled! Setting up your PIN backup…</Text>
           </View>
         )}
 
@@ -98,7 +99,7 @@ export default function FaceIdScreen() {
             style={({ pressed }) => [styles.skipBtn, { borderColor: colors.border, opacity: pressed ? 0.7 : 1 }]}
           >
             <Text style={[styles.skipBtnText, { color: colors.mutedForeground }]}>
-              {isFaceIdAvailable ? 'Skip for now' : 'Continue'}
+              {isFaceIdAvailable ? 'Use PIN only' : 'Continue'}
             </Text>
           </Pressable>
         </View>

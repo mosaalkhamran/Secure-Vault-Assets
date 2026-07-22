@@ -11,7 +11,7 @@ export default function ConfirmPinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { pin } = useLocalSearchParams<{ pin: string }>();
-  const { createPin } = useVault();
+  const { createPin, completeSetup, unlock } = useVault();
   const [error, setError] = useState(false);
 
   const handleConfirm = async (confirmedPin: string) => {
@@ -20,7 +20,9 @@ export default function ConfirmPinScreen() {
       return;
     }
     await createPin(confirmedPin);
-    router.push('/onboarding/face-id');
+    await completeSetup();
+    unlock();
+    router.replace('/');
   };
 
   return (
@@ -29,9 +31,10 @@ export default function ConfirmPinScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </Pressable>
+        {/* Step 3 of 3 */}
         <View style={styles.progress}>
-          {[1, 2, 3, 4].map(i => (
-            <View key={i} style={[styles.dot, { backgroundColor: i <= 1 ? colors.primary : colors.border }]} />
+          {[1, 2, 3].map(i => (
+            <View key={i} style={[styles.dot, { backgroundColor: colors.primary }]} />
           ))}
         </View>
         <View style={styles.backBtn} />
@@ -39,8 +42,8 @@ export default function ConfirmPinScreen() {
 
       <View style={[styles.content, { paddingBottom: insets.bottom + 24 }]}>
         <View style={styles.titleSection}>
-          <View style={[styles.iconBg, { backgroundColor: 'rgba(196,151,90,0.15)' }]}>
-            <Ionicons name="checkmark-circle-outline" size={32} color="#C4975A" />
+          <View style={[styles.iconBg, { backgroundColor: 'rgba(76,175,135,0.15)' }]}>
+            <Ionicons name="checkmark-circle-outline" size={32} color="#4CAF87" />
           </View>
           <Text style={[styles.title, { color: colors.foreground }]}>Confirm PIN</Text>
           <Text style={[styles.subtitle, { color: colors.mutedForeground }]}>
@@ -52,7 +55,7 @@ export default function ConfirmPinScreen() {
           onComplete={handleConfirm}
           error={error}
           onErrorReset={() => setError(false)}
-          subtitle={error ? 'PINs do not match. Try again.' : undefined}
+          subtitle={error ? 'PINs do not match — try again' : undefined}
         />
       </View>
     </View>

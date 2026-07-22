@@ -51,7 +51,7 @@ export default function OnboardingWelcomeScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
         <Pressable
-          onPress={() => router.push('/onboarding/create-pin')}
+          onPress={() => router.push('/onboarding/face-id')}
           style={({ pressed }) => [styles.getStartedBtn, { backgroundColor: '#C4975A', opacity: pressed ? 0.9 : 1 }]}
         >
           <Text style={styles.getStartedText}>Get Started</Text>

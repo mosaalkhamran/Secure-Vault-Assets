@@ -1,39 +1,28 @@
 import React, { useState } from 'react';
 import {
-  Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View,
+  Alert, Pressable, ScrollView, StyleSheet, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import * as LocalAuthentication from 'expo-local-authentication';
 import { useColors } from '@/hooks/useColors';
 import { useVault } from '@/contexts/VaultContext';
 import PinPad from '@/components/PinPad';
 
-type Step = 'options' | 'face-id' | 'recovery-key' | 'new-pin' | 'confirm-new-pin';
+type Step = 'options' | 'face-id' | 'new-pin' | 'confirm-new-pin';
 
 export default function ForgotPinScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
-  const { verifyRecoveryKey, createPin, unlock, settings, isFaceIdAvailable, authenticateWithFaceId } = useVault();
+  const { createPin, unlock, settings, isFaceIdAvailable, authenticateWithFaceId } = useVault();
   const [step, setStep] = useState<Step>('options');
-  const [recoveryInput, setRecoveryInput] = useState('');
   const [newPin, setNewPin] = useState('');
   const [pinError, setPinError] = useState(false);
 
   const handleFaceId = async () => {
     const success = await authenticateWithFaceId();
     if (success) setStep('new-pin');
-    else Alert.alert('Face ID Failed', 'Authentication unsuccessful. Try another recovery method.');
-  };
-
-  const handleRecoveryKey = async () => {
-    const valid = await verifyRecoveryKey(recoveryInput.toLowerCase().trim());
-    if (valid) {
-      setStep('new-pin');
-    } else {
-      Alert.alert('Invalid Key', 'The recovery key you entered is incorrect. Please check and try again.');
-    }
+    else Alert.alert('Face ID Failed', 'Authentication unsuccessful. Try again.');
   };
 
   const handleNewPin = (pin: string) => {
@@ -42,10 +31,7 @@ export default function ForgotPinScreen() {
   };
 
   const handleConfirmPin = async (pin: string) => {
-    if (pin !== newPin) {
-      setPinError(true);
-      return;
-    }
+    if (pin !== newPin) { setPinError(true); return; }
     await createPin(pin);
     unlock();
     router.replace('/');
@@ -55,12 +41,14 @@ export default function ForgotPinScreen() {
     <View style={[styles.container, { backgroundColor: '#0A0A12' }]}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
-        <Pressable onPress={() => step === 'options' ? router.back() : setStep('options')} style={styles.backBtn}>
+        <Pressable
+          onPress={() => step === 'options' ? router.back() : setStep('options')}
+          style={styles.backBtn}
+        >
           <Ionicons name="chevron-back" size={24} color={colors.foreground} />
         </Pressable>
         <Text style={[styles.headerTitle, { color: colors.foreground }]}>
           {step === 'options' ? 'Forgot PIN' :
-           step === 'recovery-key' ? 'Recovery Key' :
            step === 'new-pin' ? 'New PIN' :
            step === 'confirm-new-pin' ? 'Confirm PIN' : 'Forgot PIN'}
         </Text>
@@ -68,46 +56,56 @@ export default function ForgotPinScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* ── Options ── */}
         {step === 'options' && (
           <>
             <View style={[styles.infoBox, { backgroundColor: colors.card, borderColor: colors.border }]}>
               <Ionicons name="information-circle-outline" size={20} color={colors.mutedForeground} />
               <Text style={[styles.infoText, { color: colors.mutedForeground }]}>
-                We cannot show your PIN as it is never stored. Choose a recovery method to set a new PIN.
+                Your PIN is never stored in plain text. Use Face ID to reset it, or wipe the vault to start over.
               </Text>
             </View>
 
             <View style={styles.options}>
+              {/* Face ID */}
               {settings.faceIdEnabled && isFaceIdAvailable && (
                 <OptionCard
                   icon="scan-outline"
                   iconColor="#5E9EFA"
                   title="Use Face ID"
-                  description="Authenticate with Face ID to reset your PIN"
+                  description="Verify with Face ID to set a new PIN"
                   onPress={handleFaceId}
                   colors={colors}
                 />
               )}
-              <OptionCard
-                icon="key-outline"
-                iconColor="#F5A623"
-                title="Recovery Key"
-                description="Enter your 24-word recovery key"
-                onPress={() => setStep('recovery-key')}
-                colors={colors}
-              />
+
+              {/* iCloud Keychain info */}
+              <View style={[styles.icloudCard, { backgroundColor: 'rgba(94,158,250,0.08)', borderColor: 'rgba(94,158,250,0.25)' }]}>
+                <View style={[styles.optionIcon, { backgroundColor: 'rgba(94,158,250,0.15)' }]}>
+                  <Ionicons name="cloud-outline" size={22} color="#5E9EFA" />
+                </View>
+                <View style={styles.optionText}>
+                  <Text style={[styles.optionTitle, { color: '#5E9EFA' }]}>iCloud Recovery</Text>
+                  <Text style={[styles.optionDesc, { color: colors.mutedForeground }]}>
+                    Changing phones? Your vault settings are saved in iCloud Keychain. Sign in with the same Apple ID on your new device and your PIN will work there.
+                  </Text>
+                </View>
+              </View>
+
+              {/* Wipe */}
               <OptionCard
                 icon="trash-outline"
                 iconColor={colors.destructive}
                 title="Wipe & Start Over"
-                description="Delete all vault data permanently"
+                description="Delete all vault data and create a new vault"
                 onPress={() => {
                   Alert.alert(
                     'Wipe Vault',
-                    'This will permanently delete all your vault data. This cannot be undone.',
+                    'This permanently deletes all photos and videos in your vault. This cannot be undone.',
                     [
                       { text: 'Cancel', style: 'cancel' },
-                      { text: 'Wipe Everything', style: 'destructive', onPress: () => router.push('/(tabs)/settings') },
+                      { text: 'Wipe Everything', style: 'destructive', onPress: () => router.replace('/onboarding') },
                     ]
                   );
                 }}
@@ -118,50 +116,14 @@ export default function ForgotPinScreen() {
           </>
         )}
 
-        {step === 'recovery-key' && (
-          <View style={styles.recoverySection}>
-            <Text style={[styles.sectionLabel, { color: colors.mutedForeground }]}>
-              Enter your 24-word recovery key, separated by spaces
-            </Text>
-            <TextInput
-              value={recoveryInput}
-              onChangeText={setRecoveryInput}
-              placeholder="word1 word2 word3 ..."
-              placeholderTextColor={colors.mutedForeground}
-              multiline
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={[styles.recoveryInput, {
-                color: colors.foreground,
-                borderColor: colors.border,
-                backgroundColor: colors.input,
-              }]}
-            />
-            <Pressable
-              onPress={handleRecoveryKey}
-              disabled={!recoveryInput.trim()}
-              style={[styles.actionBtn, {
-                backgroundColor: recoveryInput.trim() ? colors.primary : colors.accent,
-              }]}
-            >
-              <Text style={[styles.actionBtnText, {
-                color: recoveryInput.trim() ? colors.primaryForeground : colors.mutedForeground,
-              }]}>
-                Verify Key
-              </Text>
-            </Pressable>
-          </View>
-        )}
-
+        {/* ── New PIN ── */}
         {step === 'new-pin' && (
           <View style={styles.pinSection}>
-            <PinPad
-              onComplete={handleNewPin}
-              subtitle="Create a new 6-digit PIN"
-            />
+            <PinPad onComplete={handleNewPin} subtitle="Create a new 6-digit PIN" />
           </View>
         )}
 
+        {/* ── Confirm new PIN ── */}
         {step === 'confirm-new-pin' && (
           <View style={styles.pinSection}>
             <PinPad
@@ -216,19 +178,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', gap: 12,
     padding: 16, borderRadius: 16, borderWidth: StyleSheet.hairlineWidth,
   },
-  optionIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  icloudCard: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
+    padding: 16, borderRadius: 16, borderWidth: 1,
+  },
+  optionIcon: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
   optionText: { flex: 1 },
   optionTitle: { fontSize: 15, fontFamily: 'Inter_600SemiBold' },
-  optionDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 2 },
-  recoverySection: { gap: 16 },
-  sectionLabel: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 22 },
-  recoveryInput: {
-    height: 120, borderRadius: 14, borderWidth: 1, padding: 14,
-    fontFamily: 'Inter_400Regular', fontSize: 15, textAlignVertical: 'top',
-  },
-  actionBtn: {
-    height: 52, borderRadius: 16, alignItems: 'center', justifyContent: 'center',
-  },
-  actionBtnText: { fontSize: 16, fontFamily: 'Inter_600SemiBold' },
+  optionDesc: { fontSize: 12, fontFamily: 'Inter_400Regular', marginTop: 4, lineHeight: 18 },
   pinSection: { paddingTop: 20 },
 });
