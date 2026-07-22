@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
-  Alert, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View,
+  ActivityIndicator, Alert, Modal, Platform, Pressable,
+  ScrollView, StyleSheet, Switch, Text, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,9 +18,32 @@ export default function SettingsScreen() {
     settings, vaultItems, trashedItems, lock, resetVault,
     updateSettings, enableFaceId, disableFaceId, isFaceIdAvailable,
     createPin, hasDecoyPin, setupDecoyPin, removeDecoyPin,
+    isSyncing, lastSyncAt, enableiCloudSync, disableiCloudSync, syncToCloud,
   } = useVault();
 
   const [showChangePinModal, setShowChangePinModal] = useState(false);
+
+  const handleSyncToggle = async (enabled: boolean) => {
+    if (Platform.OS !== 'web') Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    if (enabled) {
+      const ok = await enableiCloudSync();
+      if (!ok) Alert.alert('iCloud غير متاح', 'تأكد من تسجيل الدخول بـ Apple ID وتفعيل iCloud في الإعدادات.');
+    } else {
+      await disableiCloudSync();
+    }
+  };
+
+  const handleSyncNow = async () => {
+    if (isSyncing) return;
+    await syncToCloud();
+    Alert.alert('تمت المزامنة ✓', 'تم رفع خزنتك إلى iCloud بنجاح.');
+  };
+
+  const formatSyncTime = (iso: string | null) => {
+    if (!iso) return 'لم تتم بعد';
+    const d = new Date(iso);
+    return d.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  };
 
   const totalBytes = vaultItems.reduce((s, i) => s + i.size, 0);
   const formatSize = (b: number) => {
@@ -150,14 +174,40 @@ export default function SettingsScreen() {
 
         {/* Recovery */}
         <Section title="RECOVERY">
-          <Row icon="key-outline" iconColor="#F5A623" label="View Recovery Key" onPress={() => router.push('/onboarding/recovery-key')} colors={colors} chevron />
-          <Divider colors={colors} />
-          <Row icon="refresh-outline" iconColor="#F5A623" label="Generate New Recovery Key" onPress={() => router.push('/onboarding/recovery-key')} colors={colors} chevron />
+          <Row
+            icon="chatbubble-ellipses-outline" iconColor="#F5A623"
+            label="طرق الاسترجاع"
+            description="الجملة السرية · أسئلة الأمان · Face ID"
+            onPress={() => router.push('/onboarding/recovery')}
+            colors={colors} chevron
+          />
         </Section>
 
-        {/* Backup */}
-        <Section title="BACKUP">
-          <Row icon="cloud-outline" iconColor="#4CAF87" label="iCloud Backup" description="Encrypted · Premium" value="Upgrade" onPress={() => router.push('/subscription')} colors={colors} premium />
+        {/* iCloud Sync */}
+        <Section title="النسخ الاحتياطي">
+          <Row
+            icon="cloud-outline" iconColor="#5E9EFA"
+            label="مزامنة iCloud"
+            description={settings.iCloudSyncEnabled
+              ? `آخر مزامنة: ${formatSyncTime(lastSyncAt)}`
+              : 'احفظ خزنتك تلقائياً — مجاني ومشفّر'}
+            toggle={settings.iCloudSyncEnabled}
+            onToggle={handleSyncToggle}
+            colors={colors}
+          />
+          {settings.iCloudSyncEnabled && (
+            <>
+              <Divider colors={colors} />
+              <Row
+                icon={isSyncing ? 'sync-outline' : 'refresh-outline'}
+                iconColor="#5E9EFA"
+                label={isSyncing ? 'جارٍ المزامنة...' : 'مزامنة الآن'}
+                onPress={handleSyncNow}
+                colors={colors}
+                chevron={!isSyncing}
+              />
+            </>
+          )}
         </Section>
 
         {/* Subscription */}

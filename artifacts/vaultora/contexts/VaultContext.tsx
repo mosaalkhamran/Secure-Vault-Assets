@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import { sha256 } from 'js-sha256';
 import { encryptFile, generateSalt, generateVaultKey } from '@/services/encryption';
 import { ensureDirectory } from '@/utils/filesystem';
+import * as iCloudSync from '@/services/iCloudSync';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +51,7 @@ export interface VaultSettings {
   dualVaultEnabled: boolean;
   trashRetentionDays: number;
   lockOnBackground: boolean;
+  iCloudSyncEnabled: boolean;
 }
 
 export type SortOption = 'addedDesc' | 'addedAsc' | 'sizeDesc' | 'sizeAsc' | 'nameAsc' | 'capturedDesc';
@@ -65,6 +67,7 @@ const DEFAULT_SETTINGS: VaultSettings = {
   dualVaultEnabled: false,
   trashRetentionDays: 30,
   lockOnBackground: false,
+  iCloudSyncEnabled: false,
 };
 
 const STORAGE_KEYS = {
@@ -79,6 +82,7 @@ const STORAGE_KEYS = {
   SETTINGS:               'vault_settings',
   FAILED_ATTEMPTS:        'vault_failed_attempts',
   LOCK_UNTIL:             'vault_lock_until',
+  LAST_SYNC_AT:           'vault_last_sync_at',
 };
 
 export const VAULT_DIR = `${FileSystem.documentDirectory ?? ''}vault/media/`;
@@ -151,6 +155,9 @@ interface VaultContextType {
   hasDecoyPin: boolean;
   hasRecoveryPhrase: boolean;
   hasSecurityQuestions: boolean;
+  isSyncing: boolean;
+  lastSyncAt: string | null;
+  cloudRestoreAvailable: boolean;
   vaultItems: VaultItem[];
   trashedItems: VaultItem[];
   albums: Album[];
@@ -173,6 +180,11 @@ interface VaultContextType {
   // Security questions (2 answers hashed together)
   setupSecurityQuestions: (answers: [string, string]) => Promise<void>;
   verifySecurityAnswers: (answers: [string, string]) => Promise<boolean>;
+  // iCloud sync
+  enableiCloudSync: () => Promise<boolean>;
+  disableiCloudSync: () => Promise<void>;
+  syncToCloud: () => Promise<void>;
+  restoreFromCloud: (onProgress?: (done: number, total: number) => void) => Promise<boolean>;
   recordFailedAttempt: () => Promise<{ locked: boolean; lockSeconds: number }>;
   resetFailedAttempts: () => Promise<void>;
   // Decoy vault
@@ -214,6 +226,9 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const [hasDecoyPin, setHasDecoyPin] = useState(false);
   const [hasRecoveryPhrase, setHasRecoveryPhrase] = useState(false);
   const [hasSecurityQuestions, setHasSecurityQuestions] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null);
+  const [cloudRestoreAvailable, setCloudRestoreAvailable] = useState(false);
   const [allItems, setAllItems] = useState<VaultItem[]>([]);
   const [albums, setAlbums] = useState<Album[]>([]);
   const [settings, setSettings] = useState<VaultSettings>(DEFAULT_SETTINGS);
@@ -259,6 +274,17 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       setHasDecoyPin(!!decoyHash);
       setHasRecoveryPhrase(!!phraseHash);
       setHasSecurityQuestions(!!secAnswersHash);
+
+      // Load last sync time
+      const syncTime = await AsyncStorage.getItem(STORAGE_KEYS.LAST_SYNC_AT).catch(() => null);
+      if (syncTime) setLastSyncAt(syncTime);
+
+      // On fresh install: check iCloud for existing vault backup
+      if (setupVal !== 'true') {
+        iCloudSync.checkForExistingBackup()
+          .then(has => setCloudRestoreAvailable(has))
+          .catch(() => {});
+      }
 
       if (Platform.OS !== 'web') {
         const [hasHW, isEnrolled] = await Promise.all([
@@ -388,6 +414,63 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     return stored === hash;
   };
 
+  // ─── iCloud Sync ──────────────────────────────────────────────────────────────
+
+  const enableiCloudSync = async (): Promise<boolean> => {
+    const available = await iCloudSync.isCloudAvailable();
+    if (!available) return false;
+    await updateSettings({ iCloudSyncEnabled: true });
+    await iCloudSync.markSyncEnabled(true);
+    // Upload existing data immediately
+    syncToCloud().catch(() => {});
+    return true;
+  };
+
+  const disableiCloudSync = async () => {
+    await updateSettings({ iCloudSyncEnabled: false });
+    await iCloudSync.markSyncEnabled(false);
+  };
+
+  const syncToCloud = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    try {
+      await iCloudSync.fullSync(allItems, albums);
+      const now = new Date().toISOString();
+      setLastSyncAt(now);
+      await AsyncStorage.setItem(STORAGE_KEYS.LAST_SYNC_AT, now);
+    } catch (e) {
+      console.warn('[VaultContext] syncToCloud error:', e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const restoreFromCloud = async (
+    onProgress?: (done: number, total: number) => void,
+  ): Promise<boolean> => {
+    setIsSyncing(true);
+    try {
+      const result = await iCloudSync.restoreAll(VAULT_DIR, onProgress);
+      if (!result) return false;
+      await AsyncStorage.setItem(STORAGE_KEYS.ALL_ITEMS, JSON.stringify(result.items));
+      await AsyncStorage.setItem(STORAGE_KEYS.ALBUMS, JSON.stringify(result.albums));
+      setAllItems(result.items);
+      setAlbums(result.albums);
+      await AsyncStorage.setItem(STORAGE_KEYS.SETUP_COMPLETE, 'true');
+      setIsSetupComplete(true);
+      setCloudRestoreAvailable(false);
+      await iCloudSync.markSyncEnabled(true);
+      await updateSettings({ iCloudSyncEnabled: true });
+      return true;
+    } catch (e) {
+      console.warn('[VaultContext] restoreFromCloud error:', e);
+      return false;
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   const recordFailedAttempt = async (): Promise<{ locked: boolean; lockSeconds: number }> => {
     const newCount = failedAttempts + 1;
     setFailedAttempts(newCount);
@@ -479,6 +562,10 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     setHasDecoyPin(false);
     setHasRecoveryPhrase(false);
     setHasSecurityQuestions(false);
+    setLastSyncAt(null);
+    setCloudRestoreAvailable(false);
+    await AsyncStorage.removeItem(STORAGE_KEYS.LAST_SYNC_AT).catch(() => {});
+    await iCloudSync.markSyncEnabled(false).catch(() => {});
     setAllItems([]);
     setAlbums([]);
     setSettings(DEFAULT_SETTINGS);
@@ -501,6 +588,10 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       cloudStatus: 'local' as const,
     }));
     await saveAllItems([...allItems, ...newItems]);
+    // Auto-sync to iCloud when enabled (fire-and-forget)
+    if (settings.iCloudSyncEnabled) {
+      iCloudSync.fullSync([...allItems, ...newItems], albums).catch(() => {});
+    }
     return newItems;
   };
 
@@ -637,6 +728,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
     <VaultContext.Provider value={{
       isLoading, isSetupComplete, isUnlocked, isDecoyMode, hasDecoyPin,
       hasRecoveryPhrase, hasSecurityQuestions,
+      isSyncing, lastSyncAt, cloudRestoreAvailable,
       vaultItems, trashedItems, albums, settings,
       isFaceIdAvailable, failedAttempts, lockUntil,
       createPin, verifyPin, changePin,
@@ -644,6 +736,7 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       storeRecoveryKey, verifyRecoveryKey,
       setupRecoveryPhrase, verifyRecoveryPhrase,
       setupSecurityQuestions, verifySecurityAnswers,
+      enableiCloudSync, disableiCloudSync, syncToCloud, restoreFromCloud,
       recordFailedAttempt, resetFailedAttempts,
       setupDecoyPin, verifyDecoyPin, removeDecoyPin, enterDecoyMode,
       unlock, lock, completeSetup, resetVault,

@@ -20,8 +20,8 @@ export default function ConfirmPinScreen() {
       return;
     }
     await createPin(confirmedPin);
-    // Go to recovery setup — completeSetup() is called there
-    router.push('/onboarding/recovery');
+    // Go to sync setup → recovery setup → home
+    router.push('/onboarding/sync');
   };
 
   return (
